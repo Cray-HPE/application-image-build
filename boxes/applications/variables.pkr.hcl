@@ -20,7 +20,7 @@ variable "headless" {
 
 variable "image_name" {
   type = string
-  default = "ncn-common"
+  default = "application"
 }
 
 variable "memory" {
@@ -61,7 +61,7 @@ variable "ssh_wait_timeout" {
 
 variable "output_directory" {
   type = string
-  default = "output-ncn-common"
+  default = "output-application"
 }
 
 variable "artifact_version" {
@@ -135,7 +135,7 @@ variable "custom_repos_file" {
 
 variable "google_destination_image_family" {
   type = string
-  default = "vshasta-non-compute-common-rc"
+  default = "vshasta-application-rc"
 }
 
 variable "google_destination_project_network" {

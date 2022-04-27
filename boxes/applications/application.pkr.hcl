@@ -1,4 +1,4 @@
-source "virtualbox-ovf" "ncn-common" {
+source "virtualbox-ovf" "application" {
   source_path = "${var.vbox_source_path}"
   format = "${var.vbox_format}"
   checksum = "none"
@@ -25,7 +25,7 @@ source "virtualbox-ovf" "ncn-common" {
   guest_additions_mode = "disable"
 }
 
-source "qemu" "ncn-common" {
+source "qemu" "application" {
   accelerator = "${var.qemu_accelerator}"
   cpus = "${var.cpus}"
   disk_cache = "${var.disk_cache}"
@@ -51,7 +51,7 @@ source "qemu" "ncn-common" {
   format = "${var.qemu_format}"
 }
 
-source "googlecompute" "ncn-common" {
+source "googlecompute" "application" {
   instance_name = "vshasta-${var.image_name}-builder-${var.artifact_version}"
   project_id = "${var.google_destination_project_id}"
   network_project_id = "${var.google_network_project_id}"
@@ -73,9 +73,9 @@ source "googlecompute" "ncn-common" {
 
 build {
   sources = [
-    "source.virtualbox-ovf.ncn-common",
-    "source.qemu.ncn-common",
-    "source.googlecompute.ncn-common"]
+    "source.virtualbox-ovf.application",
+    "source.qemu.application",
+    "source.googlecompute.application"]
 
   provisioner "file" {
     source = "${path.root}/files"
@@ -83,7 +83,7 @@ build {
   }
 
   provisioner "file" {
-    source = "vendor/github.com/Cray-HPE/csm-rpms"
+    source = "vendor/github.com/Cray-HPE/node-image-build/vendor/github.com/Cray-HPE/csm-rpms"
     destination = "/tmp/files/"
   }
 
@@ -98,14 +98,14 @@ build {
 
   provisioner "shell" {
     script = "${path.root}/provisioners/google/setup.sh"
-    only = ["googlecompute.ncn-common"]
+    only = ["googlecompute.application"]
   }
 
   provisioner "shell" {
     script = "${path.root}/provisioners/metal/setup.sh"
     only = [
-      "qemu.ncn-common",
-      "virtualbox-ovf.ncn-common"
+      "qemu.application",
+      "virtualbox-ovf.application"
     ]
   }
 
@@ -133,8 +133,8 @@ build {
       "bash -c '. /srv/cray/csm-rpms/scripts/rpm-functions.sh; get-current-package-list /tmp/initial.deps.packages deps'"
     ]
     only = [
-      "qemu.ncn-common",
-      "virtualbox-ovf.ncn-common"
+      "qemu.application",
+      "virtualbox-ovf.application"
     ]
   }
 
@@ -148,8 +148,8 @@ build {
   provisioner "shell" {
     script = "${path.root}/provisioners/metal/hpc.sh"
     only = [
-      "qemu.ncn-common",
-      "virtualbox-ovf.ncn-common"
+      "qemu.application",
+      "virtualbox-ovf.application"
     ]
   }
 
@@ -164,8 +164,8 @@ build {
       "bash -c '. /srv/cray/csm-rpms/scripts/rpm-functions.sh; install-packages /srv/cray/csm-rpms/packages/node-image-non-compute-common/metal.packages'"]
     valid_exit_codes = [0, 123]
     only = [
-      "qemu.ncn-common",
-      "virtualbox-ovf.ncn-common"
+      "qemu.application",
+      "virtualbox-ovf.application"
     ]
   }
 
@@ -182,8 +182,8 @@ build {
   provisioner "shell" {
     script = "${path.root}/provisioners/common/csm/cloud-init.sh"
     only = [
-      "qemu.ncn-common",
-      "virtualbox-ovf.ncn-common"
+      "qemu.application",
+      "virtualbox-ovf.application"
     ]
   }
 
@@ -194,8 +194,8 @@ build {
   provisioner "shell" {
     script = "${path.root}/provisioners/metal/fstab.sh"
     only = [
-      "qemu.ncn-common",
-      "virtualbox-ovf.ncn-common"
+      "qemu.application",
+      "virtualbox-ovf.application"
     ]
   }
 
@@ -210,8 +210,8 @@ build {
   provisioner "shell" {
     script = "${path.root}/provisioners/metal/install.sh"
     only = [
-      "qemu.ncn-common",
-      "virtualbox-ovf.ncn-common"
+      "qemu.application",
+      "virtualbox-ovf.application"
     ]
   }
 
@@ -234,8 +234,8 @@ build {
       "bash -c 'zypper lr -e /tmp/installed.repos'"
     ]
     only = [
-      "qemu.ncn-common",
-      "virtualbox-ovf.ncn-common"
+      "qemu.application",
+      "virtualbox-ovf.application"
     ]
   }
 
@@ -249,8 +249,8 @@ build {
     ]
     destination = "${var.output_directory}/"
     only = [
-      "qemu.ncn-common",
-      "virtualbox-ovf.ncn-common"
+      "qemu.application",
+      "virtualbox-ovf.application"
     ]
   }
 
@@ -259,8 +259,8 @@ build {
     source = "/tmp/installed.repos"
     destination = "${var.output_directory}/installed.repos"
     only = [
-      "qemu.ncn-common",
-      "virtualbox-ovf.ncn-common"
+      "qemu.application",
+      "virtualbox-ovf.application"
     ]
   }
 
@@ -281,28 +281,28 @@ build {
   provisioner "shell" {
     inline = [
       "bash -c '/srv/cray/scripts/common/create-kis-artifacts.sh ${var.create_kis_artifacts_arguments}'"]
-    only = ["qemu.ncn-common"]
+    only = ["qemu.application"]
   }
 
   provisioner "file" {
     direction = "download"
     source = "/tmp/kis.tar.gz"
     destination = "${var.output_directory}/"
-    only = ["qemu.ncn-common"]
+    only = ["qemu.application"]
   }
 
   provisioner "shell" {
     inline = [
       "bash -c '/srv/cray/scripts/common/cleanup-kis-artifacts.sh'"]
-    only = ["qemu.ncn-common"]
+    only = ["qemu.application"]
   }
 
   provisioner "shell" {
     inline = [
       "bash -c 'goss -g /srv/cray/tests/common/goss-image-common.yaml validate -f junit | tee /tmp/goss_out.xml'"]
     only = [
-      "qemu.ncn-common",
-      "virtualbox-ovf.ncn-common"
+      "qemu.application",
+      "virtualbox-ovf.application"
     ]
   }
 
@@ -310,15 +310,15 @@ build {
     inline = [
       "bash -c 'goss -g /srv/cray/tests/metal/goss-image-common.yaml validate -f junit | tee /tmp/goss_metal_out.xml'"]
     only = [
-      "qemu.ncn-common",
-      "virtualbox-ovf.ncn-common"
+      "qemu.application",
+      "virtualbox-ovf.application"
     ]
   }
 
   provisioner "shell" {
     inline = [
       "bash -c 'goss -g /srv/cray/tests/google/goss-image-common.yaml validate -f junit | tee /tmp/goss_google_out.xml'"]
-    only = ["googlecompute.ncn-common"]
+    only = ["googlecompute.application"]
   }
 
   provisioner "file" {
@@ -326,8 +326,8 @@ build {
     source = "/tmp/goss_out.xml"
     destination = "${var.output_directory}/test-results.xml"
     only = [
-      "qemu.ncn-common",
-      "virtualbox-ovf.ncn-common"
+      "qemu.application",
+      "virtualbox-ovf.application"
     ]
   }
 
@@ -340,12 +340,12 @@ build {
         "tar -xzvf ${var.output_directory}/kis.tar.gz -C ${var.output_directory}",
         "rm ${var.output_directory}/kis.tar.gz"
       ]
-      only   = ["qemu.ncn-common"]
+      only   = ["qemu.application"]
     }
     post-processor "shell-local" {
       inline = [
         "if cat ${var.output_directory}/test-results.xml | grep '<failure>'; then echo 'Error: goss test failures found! See build output for details'; exit 1; fi"]
-      only   = ["qemu.ncn-common"]
+      only   = ["qemu.application"]
     }
   }
 }
