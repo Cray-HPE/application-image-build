@@ -51,7 +51,7 @@ pipeline {
     triggers {
         parameterizedCron(env.BRANCH_NAME == 'main' ? '''
             # 6am UTC / midnight CT
-            0 6 * * * %buildAndPublish=true; rebuildBaseImage=true; buildGoogle=true; rebuildApplicationImage=true
+            0 6 * * * %buildAndPublish=true; rebuildBaseImage=true; buildGoogle=false; rebuildApplicationImage=true
         ''' : '')
     }
 
