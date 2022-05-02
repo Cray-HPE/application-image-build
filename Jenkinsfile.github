@@ -48,13 +48,6 @@ pipeline {
         string(name: 'sourceProjectId', defaultValue: "artifactory-202004", description: 'The source Project ID for pulling Google images.')
     }
 
-    triggers {
-        parameterizedCron(env.BRANCH_NAME == 'main' ? '''
-            # 6am UTC / midnight CT
-            0 6 * * * %buildAndPublish=true; rebuildBaseImage=true; buildGoogle=false; rebuildApplicationImage=true
-        ''' : '')
-    }
-
     stages {
 
         stage('Fetch SLES ISO') {
