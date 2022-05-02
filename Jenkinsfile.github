@@ -182,18 +182,18 @@ pipeline {
 		}
         }
         // This should run stand-alone; nothing should build when we release, we're just moving things within artifactory.
-        stage('Release') {
-            when { tag "*" }
-            steps {
-                withCredentials([
-                        usernamePassword(credentialsId: 'artifactory-algol60', usernameVariable: 'ARTIFACTORY_USER', passwordVariable: 'ARTIFACTORY_TOKEN')
-                ]) {
-                    script {
-                        publishCsmImages.release('sles15-base', GIT_COMMIT[0..6], env.TAG_NAME)
-                        publishCsmImages.release('application', GIT_COMMIT[0..6], env.TAG_NAME)
-                    }
-                }
-            }
-        }
+        //stage('Release') {
+        //    when { tag "*" }
+        //    steps {
+        //        withCredentials([
+        //                usernamePassword(credentialsId: 'artifactory-algol60', usernameVariable: 'ARTIFACTORY_USER', passwordVariable: 'ARTIFACTORY_TOKEN')
+        //        ]) {
+        //            script {
+        //                publishCsmImages.release('sles15-base', GIT_COMMIT[0..6], env.TAG_NAME)
+        //                publishCsmImages.release('application', GIT_COMMIT[0..6], env.TAG_NAME)
+        //            }
+        //        }
+        //    }
+        //}
     }
 }
