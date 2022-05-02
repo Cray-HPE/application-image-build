@@ -75,7 +75,7 @@ pipeline {
                     string(credentialsId: 'sles15-registration-code', variable: 'SLES15_REGISTRATION_CODE')
                 ]) {
                     sh '''
-                        ./vendor/github.com/Cray-HPE/node-image-build/scripts/setup.sh
+                        ./${NODE_IMAGE_BUILD}/scripts/setup.sh
                     '''
                 }
             }
