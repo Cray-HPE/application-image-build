@@ -142,7 +142,7 @@ pipeline {
 					]) {
 						script {
 							// If we didn't rebuild in this build, then always grab latest stable base.
-							def source = params.rebuildBaseImage ? "${ARTIFACTS_DIRECTORY_BASE}/sles15-base-${VERSION}.qcow2" : "${STABLE_BASE}/sles15-base/[RELEASE]/sles15-base-[RELEASE].qcow2"
+							def source = params.rebuildBaseImage ? "${NODE_IMAGE_BUILD}/${ARTIFACTS_DIRECTORY_BASE}/sles15-base-${VERSION}.qcow2" : "${STABLE_BASE}/sles15-base/[RELEASE]/sles15-base-[RELEASE].qcow2"
 							def arguments = "-only=qemu.application -var 'source_iso_uri='${source} -var 'ssh_password=${SLES15_INITIAL_ROOT_PASSWORD}' -var 'artifactory_user=${ARTIFACTORY_USER}' -var 'artifactory_token=${ARTIFACTORY_TOKEN}' -var 'cpus=${NPROC}' -var 'memory=${NRAM}' -var 'artifact_version=${VERSION}'"
 							publishCsmImages.build(arguments, 'boxes/application/')
 							publishCsmImages.prepareArtifacts(ARTIFACTS_DIRECTORY_APPLICATION, VERSION)
