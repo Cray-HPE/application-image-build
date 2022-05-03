@@ -86,12 +86,14 @@ pipeline {
 			expression { params.rebuildBaseImage || (params.rebuildBaseImage && ! params.rebuildApplicationImage) }
 		}
 		steps {
-			withCredentials([
-				string(credentialsId: 'sles15-initial-root-password', variable: 'SLES15_INITIAL_ROOT_PASSWORD')
-			]) {
-				script {
-					def arguments = "-only=qemu.sles15-base -var 'ssh_password=${SLES15_INITIAL_ROOT_PASSWORD}' -var 'cpus=${NPROC}' -var 'memory=${NRAM}' -var 'artifact_version=${VERSION}'"
-					publishCsmImages.build(arguments, '${NODE_IMAGE_BUILD}/boxes/sles15-base/')
+			dir(env.NODE_IMAGE_BUILD) {
+				withCredentials([
+					string(credentialsId: 'sles15-initial-root-password', variable: 'SLES15_INITIAL_ROOT_PASSWORD')
+				]) {
+					script {
+						def arguments = "-only=qemu.sles15-base -var 'ssh_password=${SLES15_INITIAL_ROOT_PASSWORD}' -var 'cpus=${NPROC}' -var 'memory=${NRAM}' -var 'artifact_version=${VERSION}'"
+						publishCsmImages.build(arguments, 'boxes/sles15-base/')
+					}
 				}
 			}
 		}
