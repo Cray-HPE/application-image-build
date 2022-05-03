@@ -112,7 +112,7 @@ build {
           "echo qemu_format=\"${var.qemu_format}\" >> ./scripts/google/.variables",
           "echo google_destination_image_family=\"${var.google_destination_image_family}\" >> ./scripts/google/.variables",
           "echo google_network=\"${var.google_destination_project_network}\" >> ./scripts/google/.variables",
-          "echo google_subnetwork=\"${var.google_subnetwork}\" >> .scripts/google/.variables",
+          "echo google_subnetwork=\"${var.google_subnetwork}\" >> ./scripts/google/.variables",
           "echo google_zone=\"${var.google_zone}\" >> ./scripts/google/.variables"
       ]
     }
