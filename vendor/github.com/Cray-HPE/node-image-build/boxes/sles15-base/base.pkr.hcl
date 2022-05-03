@@ -108,7 +108,7 @@ build {
           "echo google_destination_project_id=\"${var.google_destination_project_id}\" > ./scripts/google/.variables",
           "echo output_directory=\"${var.output_directory}\" >> ./scripts/google/.variables",
           "echo image_name=\"${var.image_name}\" >> ./scripts/google/.variables",
-          "echo version=\"${var.artifact_version}\" >> .scripts/google/.variables",
+          "echo version=\"${var.artifact_version}\" >> ./scripts/google/.variables",
           "echo qemu_format=\"${var.qemu_format}\" >> ./scripts/google/.variables",
           "echo google_destination_image_family=\"${var.google_destination_image_family}\" >> ./scripts/google/.variables",
           "echo google_network=\"${var.google_destination_project_network}\" >> ./scripts/google/.variables",
