@@ -104,9 +104,11 @@ pipeline {
 			expression { params.rebuildBaseImage || (params.rebuildBaseImage && ! params.rebuildApplicationImage) }
 		}
 		steps {
-			script {
-				def props = "build.number=${env.VERSION};build.url=${env.BUILD_URL};vcs.revision-short=${GIT_COMMIT[0..6]};build.source-artifact=${ISO_URL}"
-				publishCsmImages(artifactoryRepo: IMAGE_REPO, pattern: ARTIFACTS_DIRECTORY_BASE, imageName: 'sles15-base', version: env.VERSION, props: props)
+			dir(env.NODE_IMAGE_BUILD) {
+				script {
+					def props = "build.number=${env.VERSION};build.url=${env.BUILD_URL};vcs.revision-short=${GIT_COMMIT[0..6]};build.source-artifact=${ISO_URL}"
+					publishCsmImages(artifactoryRepo: IMAGE_REPO, pattern: ARTIFACTS_DIRECTORY_BASE, imageName: 'sles15-base', version: env.VERSION, props: props)
+				}
 			}
 		}
 	}
