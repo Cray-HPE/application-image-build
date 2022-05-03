@@ -56,7 +56,7 @@ pipeline {
                 expression { params.rebuildBaseImage || (params.rebuildBaseImage && ! params.rebuildApplicationImage) }
             }
             steps {
-                dir('iso') {
+                dir('${NODE_IMAGE_BUILD}/iso') {
                     withCredentials([
                         usernamePassword(credentialsId: 'artifactory-algol60', usernameVariable: 'ARTIFACTORY_USER', passwordVariable: 'ARTIFACTORY_TOKEN')
                     ]) {
