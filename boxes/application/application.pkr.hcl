@@ -88,7 +88,7 @@ build {
   }
 
   provisioner "file" {
-    source = "custom"
+    source = "vendor/github.com/Cray-HPE/node-image-build/custom"
     destination = "/tmp/files/"
   }
 
