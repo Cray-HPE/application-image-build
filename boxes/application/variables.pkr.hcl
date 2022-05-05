@@ -73,10 +73,10 @@ variable "kernel_version" {
   type    = string
 }
 
-variable "create_kis_artifacts_arguments" {
+/*rmtag variable "create_kis_artifacts_arguments" {
   type = string
   default = "kernel-initrd-only"
-}
+}*/
 
 variable "vbox_format" {
   type = string

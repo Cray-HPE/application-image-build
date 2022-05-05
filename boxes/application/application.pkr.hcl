@@ -179,25 +179,25 @@ build {
     script = "${path.root}/provisioners/common/install.sh"
   }
 
-  provisioner "shell" {
+  /*rmtag provisioner "shell" {
     script = "${path.root}/provisioners/common/csm/cloud-init.sh"
     only = [
       "qemu.application",
       "virtualbox-ovf.application"
     ]
-  }
+  }*/
 
   provisioner "shell" {
     script = "${path.root}/provisioners/common/csm/ansible.sh"
   }
 
-  provisioner "shell" {
+  /*rmtag provisioner "shell" {
     script = "${path.root}/provisioners/metal/fstab.sh"
     only = [
       "qemu.application",
       "virtualbox-ovf.application"
     ]
-  }
+  }*/
 
   provisioner "shell" {
     script = "${path.root}/provisioners/common/python_symlink.sh"
