@@ -280,7 +280,7 @@ build {
 
   provisioner "shell" {
     inline = [
-      "bash -c '/srv/cray/scripts/common/create-kis-artifacts.sh ${var.create_kis_artifacts_arguments}'"]
+      "bash -c '/srv/cray/scripts/common/create-kis-artifacts.sh'"]
     only = ["qemu.application"]
   }
 
