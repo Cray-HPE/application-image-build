@@ -2,18 +2,6 @@ file:
   /var/adm/autoinstall/cache:
     exists: false
 service:
-  cloud-config:
-    enabled: true
-    running: false
-  cloud-init:
-    enabled: true
-    running: false
-  cloud-final:
-    enabled: true
-    running: false
-  cloud-init-local:
-    enabled: true
-    running: false
   ca-certificates:
     enabled: true
     running: false
@@ -21,18 +9,6 @@ service:
     enabled: true
     running: false
   ca-certificates:
-    enabled: true
-    running: false
-  cloud-config:
-    enabled: true
-    running: false
-  cloud-init:
-    enabled: true
-    running: false
-  cloud-init-local:
-    enabled: true
-    running: false
-  cloud-final:
     enabled: true
     running: false
   issue-generator:
