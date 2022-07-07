@@ -31,7 +31,7 @@ pipeline {
         VERSION = setImageVersion(commitHashShort: GIT_COMMIT[0..6])
         ARTIFACTS_DIRECTORY_BASE = "output-sles15-base"
         ARTIFACTS_DIRECTORY_APPLICATION = "output-application"
-	NODE_IMAGE_BUILD="vendor/github.com/Cray-HPE/node-image-build"
+	NODE_IMAGE_BUILD="vendor/github.com/Cray-HPE/node-images"
         ISO_URL = "https://artifactory.algol60.net/artifactory/os-images/SLE-15-SP3-Online-x86_64-GM-Media1.iso"
         IMAGE_REPO = "user-uan-images"
         STABLE_BASE = "https://artifactory.algol60.net/artifactory/user-uan-images/stable"
