@@ -139,13 +139,6 @@ build {
   }
 
   provisioner "shell" {
-    environment_vars = [
-      "SLES15_KERNEL_VERSION=${var.kernel_version}"
-    ]
-    script = "${path.root}/scripts/kernel.sh"
-  }
-
-  provisioner "shell" {
     script = "${path.root}/provisioners/metal/hpc.sh"
     only = [
       "qemu.application",
