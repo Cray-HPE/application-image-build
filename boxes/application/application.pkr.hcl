@@ -83,12 +83,12 @@ build {
   }
 
   provisioner "file" {
-    source = "vendor/github.com/Cray-HPE/node-image-build/vendor/github.com/Cray-HPE/csm-rpms"
+    source = "vendor/github.com/Cray-HPE/node-images/vendor/github.com/Cray-HPE/csm-rpms"
     destination = "/tmp/files/"
   }
 
   provisioner "file" {
-    source = "vendor/github.com/Cray-HPE/node-image-build/custom"
+    source = "vendor/github.com/Cray-HPE/node-images/custom"
     destination = "/tmp/files/"
   }
 
