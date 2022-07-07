@@ -42,6 +42,3 @@ chmod +x -R /srv/cray/scripts
 rm -rf /tmp/files
 cp /srv/cray/sysctl/common/* /etc/sysctl.d/
 cp /srv/cray/limits/98-cray-limits.conf /etc/security/limits.d/98-cray-limits.conf
-
-# Change hostname from lower layer to ncn.
-#rmtag echo 'ncn' > /etc/hostname
