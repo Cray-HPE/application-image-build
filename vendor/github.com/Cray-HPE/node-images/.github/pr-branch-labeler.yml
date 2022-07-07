@@ -1,0 +1,4 @@
+# Apply label "release" if base matches "main" or "lts/*"
+release:
+  base: ["lts/*", "main"]
+
