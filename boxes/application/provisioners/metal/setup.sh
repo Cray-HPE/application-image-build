@@ -11,4 +11,4 @@ systemctl enable kdump-cray
 systemctl enable cloud-init-oneshot
 
 # Adding sshd_config for metal.
-cp -vp /srv/cray/resources/metal/sshd_config /etc/ssh/sshd_config
+#cp -vp /srv/cray/resources/metal/sshd_config /etc/ssh/sshd_config
