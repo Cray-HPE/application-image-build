@@ -169,6 +169,12 @@ build {
   }
 
   provisioner "shell" {
+    inline = [
+      "bash -c '. /srv/cray/csm-rpms/scripts/rpm-functions.sh; install-packages /srv/cray/application/application.packages'"]
+    valid_exit_codes = [0, 123]
+  }
+
+  provisioner "shell" {
     script = "${path.root}/provisioners/common/install.sh"
   }
 
