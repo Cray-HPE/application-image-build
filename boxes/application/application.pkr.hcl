@@ -262,6 +262,10 @@ build {
   }
 
   provisioner "shell" {
+    script = "${path.root}/provisioners/metal/cleanup.sh"
+  }
+
+  provisioner "shell" {
     inline = [
       "bash -c '/srv/cray/scripts/common/create-kis-artifacts.sh'"]
     only = ["qemu.application"]
