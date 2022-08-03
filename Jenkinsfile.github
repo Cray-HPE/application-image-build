@@ -1,4 +1,4 @@
-@Library('csm-shared-library@d1fbca3531d9') _
+@Library('csm-shared-library') _
 
 def promotionToken = ~"(master|main|develop|lts\\/.*)"
 def buildAndPublish = env.TAG_NAME == null && !(env.BRANCH_NAME ==~ promotionToken) ? true : false
