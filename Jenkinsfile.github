@@ -1,4 +1,4 @@
-@Library('csm-shared-library') _
+@Library('csm-shared-library@dee32b3') _
 
 def promotionToken = ~"(master|main|develop|lts\\/.*)"
 def buildAndPublish = env.TAG_NAME == null && !(env.BRANCH_NAME ==~ promotionToken) ? true : false
@@ -35,6 +35,7 @@ pipeline {
         ISO_URL = "https://artifactory.algol60.net/artifactory/os-images/SLE-15-SP3-Online-x86_64-GM-Media1.iso"
         IMAGE_REPO = "user-uan-images"
         STABLE_BASE = "https://artifactory.algol60.net/artifactory/user-uan-images/stable"
+        SKIP_GCP_UPLOAD = "yes"
         NPROC = sh(returnStdout: true, script: "nproc").trim()
         NRAM = '4096'
     }
