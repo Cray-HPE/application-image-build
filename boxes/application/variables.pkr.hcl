@@ -125,8 +125,9 @@ variable "artifactory_user" {
 }
 
 variable "artifactory_token" {
-  type    = string
-  default = ""
+  type      = string
+  default   = ""
+  sensitive = true
 }
 
 variable "custom_repos_file" {
