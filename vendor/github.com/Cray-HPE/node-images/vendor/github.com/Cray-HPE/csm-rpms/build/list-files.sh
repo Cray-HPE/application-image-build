@@ -16,12 +16,10 @@ set -o pipefail
 while [[ $# -gt 0 ]]; do
     case "$1" in
     repos|repositories)
-        list-suse-repos-files
+        list-google-repos-files
         list-hpe-spp-repos-files
         list-cray-repos-files
-        ;;
-    compute-repos|compute-repositories)
-        list-cray-compute-repos-files
+        list-suse-repos-files
         ;;
     pkgs|packages)
         list-packages-files

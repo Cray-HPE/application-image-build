@@ -6,11 +6,15 @@ ceph_k8s_initialized_file="/etc/cray/ceph/ceph_k8s_initialized"
 csi_initialized_file="/etc/cray/ceph/csi_initialized"
 export KUBECONFIG=/etc/kubernetes/admin.conf
 export CRAYSYS_TYPE=$(craysys type get)
-registry="${1:-registry.local}"
+if [[ $CRAYSYS_TYPE == "google" ]]; then
+  registry="${1:-artifactory.algol60.net/csm-docker/stable}"
+else
+  registry="${1:-localhost}"
+fi
 CSM_RELEASE="${2:-1.5}"
-CEPH_VERS="${3:-15.2.15}"
+CEPH_VERS="${3:-16.2.9}"
 
-. /srv/cray/scripts/${CRAYSYS_TYPE}/lib-${CSM_RELEASE}.sh
+. /srv/cray/scripts/${CRAYSYS_TYPE}/lib.sh
 . /srv/cray/scripts/common/wait-for-k8s-worker.sh
 . /srv/cray/scripts/common/mark_step_complete.sh
 . /srv/cray/scripts/common/auditing_config.sh
@@ -21,42 +25,56 @@ CEPH_VERS="${3:-15.2.15}"
 expand-root-disk
 
 echo "Pre-loading ceph images"
-export num_storage_nodes=$(craysys metadata get num-storage-nodes)
-echo "number of storage nodes: $num_storage_nodes"
 
-for node in $(seq 1 $num_storage_nodes); do
-  if [[ "$CRAYSYS_TYPE" == "metal" ]]
-  then
-    nodename=$(printf "ncn-s%03d.nmn" $node)
-  else
-    nodename=$(printf "ncn-s%03d" $node)
-  fi
-  echo "Checking for node $nodename status"
-  until nc -z -w 10 $nodename 22; do
-    echo "Waiting for $nodename to be online, sleeping 60 seconds between polls"
-    sleep 60
+if [[ "$CRAYSYS_TYPE" == "google" ]]
+then
+  /srv/cray/scripts/common/pre-load-images.sh
+else
+  export num_storage_nodes=$(craysys metadata get num-storage-nodes)
+  echo "number of storage nodes: $num_storage_nodes"
+  
+  for node in $(seq 1 $num_storage_nodes); do
+    if [[ "$CRAYSYS_TYPE" == "metal" ]]
+    then
+      nodename=$(printf "ncn-s%03d.nmn" $node)
+    else
+      nodename=$(printf "ncn-s%03d" $node)
+    fi
+    echo "Checking for node $nodename status"
+    until nc -z -w 10 $nodename 22; do
+      echo "Waiting for $nodename to be online, sleeping 60 seconds between polls"
+      sleep 60
+    done
   done
-done
-
-for node in $(seq 1 $num_storage_nodes); do
-  if [[ "$CRAYSYS_TYPE" == "metal" ]]
+  
+  for node in $(seq 1 $num_storage_nodes); do
+    if [[ "$CRAYSYS_TYPE" == "metal" ]]
+    then
+      nodename=$(printf "ncn-s%03d.nmn" $node)
+    else
+      nodename=$(printf "ncn-s%03d" $node)
+    fi
+   ssh-keyscan -t rsa -H $nodename >> ~/.ssh/known_hosts
+  done
+  
+  for node in $(seq 1 $num_storage_nodes); do
+    if [[ "$CRAYSYS_TYPE" == "metal" ]]
+    then
+      nodename=$(printf "ncn-s%03d.nmn" $node)
+      nodelist="${nodelist}${nodelist:+,}$nodename"
+    else
+      nodename=$(printf "ncn-s%03d" $node)
+      nodelist="${nodelist}${nodelist:+,}$nodename"
+    fi
+  done
+  if [[ -z $nodelist ]]
   then
-    nodename=$(printf "ncn-s%03d.nmn" $node)
+    echo "nodelist is empty.  exiting..."
+    exit 1
   else
-    nodename=$(printf "ncn-s%03d" $node)
+    pdsh -w $nodelist /srv/cray/scripts/common/pre-load-images.sh
   fi
- ssh-keyscan -t rsa -H $nodename >> ~/.ssh/known_hosts
-done
-
-for node in $(seq 1 $num_storage_nodes); do
-  if [[ "$CRAYSYS_TYPE" == "metal" ]]
-  then
-    nodename=$(printf "ncn-s%03d.nmn" $node)
-  else
-    nodename=$(printf "ncn-s%03d" $node)
-  fi
-  ssh "$nodename" /srv/cray/scripts/common/pre-load-images.sh
-done
+fi
 
 echo "Configuring node auditing software"
 configure_auditing
@@ -86,6 +104,9 @@ fi
 . /srv/cray/scripts/common/ceph-enable-services.sh
 . /srv/cray/scripts/common/enable-ceph-mgr-modules.sh
 enable_ceph_prometheus
+
+# Redeploy ceph-grafana to pickup latest version
+ceph orch daemon rm $(ceph orch ps --daemon_type grafana --format json-pretty |jq -r '.[].daemon_name')
 
 # Make ceph read-only client for monitoring
 

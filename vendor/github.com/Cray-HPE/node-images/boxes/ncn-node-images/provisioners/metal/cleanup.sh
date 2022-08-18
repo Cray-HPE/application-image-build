@@ -9,6 +9,6 @@ for repo in $(zypper ls | awk '{print $3}' | grep -E $SLES_VERSION); do
 done
 
 echo "remove credential files"
-rm -f /root/.zypp/credentials.cat
-rm -f /etc/zypp/credentials.cat
-rm -f /etc/zypp/credentials.d/*
+rm -vf /root/.zypp/credentials.cat
+rm -vf /etc/zypp/credentials.cat
+rm -vf /etc/zypp/credentials.d/*
