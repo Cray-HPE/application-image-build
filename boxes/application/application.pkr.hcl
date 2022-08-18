@@ -1,75 +1,78 @@
+source "googlecompute" "application" {
+  instance_name           = "vshasta-${var.image_name}-builder-${var.artifact_version}"
+  project_id              = "${var.google_destination_project_id}"
+  network_project_id      = "${var.google_network_project_id}"
+  source_image_project_id = "${var.google_source_image_project_id}"
+  source_image_family     = "${var.google_source_image_family}"
+  source_image            = "${var.google_source_image_name}"
+  service_account_email   = "${var.google_service_account_email}"
+  ssh_username            = "root"
+  zone                    = "${var.google_zone}"
+  image_family            = "${var.google_destination_image_family}"
+  image_name              = "vshasta-${var.image_name}-${var.artifact_version}"
+  image_description       = "build.source-artifact = ${var.google_source_image_url}, build.url = ${var.build_url}"
+  machine_type            = "${var.google_machine_type}"
+  subnetwork              = "${var.google_subnetwork}"
+  disk_size               = "${var.google_disk_size_gb}"
+  use_internal_ip         = "${var.google_use_internal_ip}"
+  omit_external_ip        = "${var.google_use_internal_ip}"
+}
+
+source "qemu" "application" {
+  accelerator         = "${var.qemu_accelerator}"
+  cpus                = "${var.cpus}"
+  disk_cache          = "${var.disk_cache}"
+  disk_discard        = "unmap"
+  disk_detect_zeroes  = "unmap"
+  disk_compression    = "${var.qemu_disk_compression}"
+  skip_compaction     = "${var.qemu_skip_compaction}"
+  disk_image          = true
+  disk_size           = "${var.disk_size}"
+  display             = "${var.qemu_display}"
+  use_default_display = "${var.qemu_default_display}"
+  memory              = "${var.memory}"
+  headless            = "${var.headless}"
+  iso_checksum        = "${var.source_iso_checksum}"
+  iso_url             = "${var.source_iso_uri}"
+  shutdown_command    = "echo '${var.ssh_password}'|/sbin/halt -h -p"
+  ssh_password        = "${var.ssh_password}"
+  ssh_username        = "${var.ssh_username}"
+  ssh_wait_timeout    = "${var.ssh_wait_timeout}"
+  output_directory    = "${var.output_directory}"
+  vnc_bind_address    = "${var.vnc_bind_address}"
+  vm_name             = "${var.image_name}.${var.qemu_format}"
+  format              = "${var.qemu_format}"
+}
+
 source "virtualbox-ovf" "application" {
-  source_path = "${var.vbox_source_path}"
-  format = "${var.vbox_format}"
-  checksum = "none"
-  headless = "${var.headless}"
+  source_path      = "${var.vbox_source_path}"
+  format           = "${var.vbox_format}"
+  checksum         = "none"
+  headless         = "${var.headless}"
   shutdown_command = "echo '${var.ssh_password}'|/sbin/halt -h -p"
-  ssh_password = "${var.ssh_password}"
-  ssh_username = "${var.ssh_username}"
+  ssh_password     = "${var.ssh_password}"
+  ssh_username     = "${var.ssh_username}"
   ssh_wait_timeout = "${var.ssh_wait_timeout}"
   output_directory = "${var.output_directory}"
-  output_filename = "${var.image_name}"
-  vboxmanage = [
+  output_filename  = "${var.image_name}"
+  vboxmanage       = [
     [
       "modifyvm",
       "{{ .Name }}",
       "--memory",
-      "${var.memory}"],
+      "${var.memory}"
+    ],
     [
       "modifyvm",
       "{{ .Name }}",
       "--cpus",
-      "${var.cpus}"]
+      "${var.cpus}"
+    ]
   ]
   virtualbox_version_file = ".vbox_version"
-  guest_additions_mode = "disable"
+  guest_additions_mode    = "disable"
 }
 
-source "qemu" "application" {
-  accelerator = "${var.qemu_accelerator}"
-  cpus = "${var.cpus}"
-  disk_cache = "${var.disk_cache}"
-  disk_discard = "unmap"
-  disk_detect_zeroes = "unmap"
-  disk_compression = "${var.qemu_disk_compression}"
-  skip_compaction = "${var.qemu_skip_compaction}"
-  disk_image = true
-  disk_size = "${var.disk_size}"
-  display = "${var.qemu_display}"
-  use_default_display = "${var.qemu_default_display}"
-  memory = "${var.memory}"
-  headless = "${var.headless}"
-  iso_checksum = "${var.source_iso_checksum}"
-  iso_url = "${var.source_iso_uri}"
-  shutdown_command = "echo '${var.ssh_password}'|/sbin/halt -h -p"
-  ssh_password = "${var.ssh_password}"
-  ssh_username = "${var.ssh_username}"
-  ssh_wait_timeout = "${var.ssh_wait_timeout}"
-  output_directory = "${var.output_directory}"
-  vnc_bind_address = "${var.vnc_bind_address}"
-  vm_name = "${var.image_name}.${var.qemu_format}"
-  format = "${var.qemu_format}"
-}
-
-source "googlecompute" "application" {
-  instance_name = "vshasta-${var.image_name}-builder-${var.artifact_version}"
-  project_id = "${var.google_destination_project_id}"
-  network_project_id = "${var.google_network_project_id}"
-  source_image_project_id = "${var.google_source_image_project_id}"
-  source_image_family = "${var.google_source_image_family}"
-  source_image = "${var.google_source_image_name}"
-  service_account_email = "${var.google_service_account_email}"
-  ssh_username = "root"
-  zone = "${var.google_zone}"
-  image_family = "${var.google_destination_image_family}"
-  image_name = "vshasta-${var.image_name}-${var.artifact_version}"
-  image_description = "build.source-artifact = ${var.google_source_image_url}, build.url = ${var.build_url}"
-  machine_type = "n2-standard-32"
-  subnetwork = "${var.google_subnetwork}"
-  disk_size = "${var.google_disk_size_gb}"
-  use_internal_ip = "${var.google_use_internal_ip}"
-  omit_external_ip = "${var.google_use_internal_ip}"
-}
 
 build {
   sources = [
