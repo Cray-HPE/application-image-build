@@ -1,10 +1,42 @@
 #!/bin/bash
+#
+# MIT License
+#
+# (C) Copyright 2022 Hewlett Packard Enterprise Development LP
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included
+# in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+# OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+# ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
+#
+set -ex
 
-set -e
+cp -rpv /srv/cray/resources/common/ansible/* /etc/ansible/
 
-echo "Initializing directories and resources"
+ANSIBLE_VERSION=${ANSIBLE_VERSION:-2.11.10}
+PYTHON_VERSION=/usr/bin/python3.6
+REQUIREMENTS=( boto3 netaddr )
 
-mkdir -p /srv/cray
-cp -r /tmp/files/* /srv/cray/
-chmod +x -R /srv/cray/scripts
-rm -rf /tmp/files
+echo "Installing Ceph Ansible ($ANSIBLE_VERSION) with system-site-packages (e.g. pip)"
+$PYTHON_VERSION -m venv /etc/ansible/boto3_ansible
+. /etc/ansible/boto3_ansible/bin/activate
+python3 -m pip install ansible-core==$ANSIBLE_VERSION ansible
+
+echo "Installing requirements: ${REQUIREMENTS[@]}"
+for requirement in ${REQUIREMENTS[@]}; do
+    python3 -m pip install -U $requirement
+done
+deactivate

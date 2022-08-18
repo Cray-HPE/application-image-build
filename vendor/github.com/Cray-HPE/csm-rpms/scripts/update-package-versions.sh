@@ -1,4 +1,27 @@
 #!/usr/bin/env bash
+#
+# MIT License
+#
+# (C) Copyright 2022 Hewlett Packard Enterprise Development LP
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included
+# in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+# OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+# ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
+#
 set -ex
 
 realpath() {
@@ -64,7 +87,7 @@ REPOS_FILTER="all"
 AUTO_YES="false"
 
 DOCKER_CACHE_IMAGE="csm-rpms-cache"
-DOCKER_BASE_IMAGE="arti.dev.cray.com/baseos-docker-master-local/sles15sp3:latest"
+DOCKER_BASE_IMAGE="artifactory.algol60.net/csm-docker/stable/csm-docker-sle:15.3"
 
 while [[ "$#" -gt 0 ]]
 do
@@ -121,12 +144,13 @@ if [[ "$(docker images -q $DOCKER_CACHE_IMAGE 2> /dev/null)" == "" ]]; then
   docker run --name $DOCKER_CACHE_IMAGE -v "$(realpath "$SOURCE_DIR"):/app" -e ARTIFACTORY_USER=$ARTIFACTORY_USER -e ARTIFACTORY_TOKEN=$ARTIFACTORY_TOKEN $DOCKER_BASE_IMAGE bash -c "
     set -e
     source /app/scripts/rpm-functions.sh
-    zypper --non-interactive install gettext gawk
+    setup-csm-rpms
     cleanup-all-repos
     setup-package-repos $SETUP_PACKAGE_REPOS_FLAGS
     zypper refresh
     # Force a cache update
     zypper --no-refresh info man > /dev/null 2>&1
+    cleanup-csm-rpms
   "
 
   echo "Creating cache docker image $DOCKER_CACHE_IMAGE"
