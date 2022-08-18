@@ -28,6 +28,11 @@ variable "memory" {
   default = "4096"
 }
 
+variable "vendor_path" {
+  type    = string
+  default = "vendor/github.com/Cray-HPE/node-images/"
+}
+
 variable "vbox_source_path" {
   type    = string
   default = "output-sles15-base/sles15-base.ovf"

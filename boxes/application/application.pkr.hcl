@@ -73,52 +73,28 @@ source "virtualbox-ovf" "application" {
   guest_additions_mode    = "disable"
 }
 
-
 build {
   sources = [
-    "source.virtualbox-ovf.application",
+    "source.googlecompute.application",
     "source.qemu.application",
-    "source.googlecompute.application"]
-
-  provisioner "file" {
-    source = "${path.root}/files"
-    destination = "/tmp/"
-  }
-
-  provisioner "file" {
-    source = "vendor/github.com/Cray-HPE/node-images/vendor/github.com/Cray-HPE/csm-rpms"
-    destination = "/tmp/files/"
-  }
-
-  provisioner "file" {
-    source = "vendor/github.com/Cray-HPE/node-images/custom"
-    destination = "/tmp/files/"
-  }
-
-  provisioner "shell" {
-    script = "${path.root}/provisioners/common/setup.sh"
-  }
-
-  provisioner "shell" {
-    script = "${path.root}/provisioners/google/setup.sh"
-    only = ["googlecompute.application"]
-  }
-
-  provisioner "shell" {
-    script = "${path.root}/provisioners/metal/setup.sh"
-    only = [
-      "qemu.application",
-      "virtualbox-ovf.application"
-    ]
-  }
-
-  provisioner "shell" {
-    script = "${path.root}/provisioners/common/disk_resize.sh"
-  }
+    "source.virtualbox-ovf.application"
+  ]
 
   provisioner "shell" {
     inline = [
-      "bash -c 'rpm --import https://arti.dev.cray.com/artifactory/dst-misc-stable-local/SigningKeys/HPE-SHASTA-RPM-PROD.asc'"]
+      "mkdir -pv /etc/ansible /srv/cray"
+    ]
+  }
+  
+  provisioner "file" {
+    direction   = "upload"
+    source      = "${var.vendor_path}/vendor/github.com/Cray-HPE/metal-provision/ansible.cfg"
+    destination = "/etc/ansible/ansible.cfg"
+  }
+
+  provisioner "file" {
+    source      = "${var.vendor_path}/vendor/github.com/Cray-HPE/csm-rpms"
+    destination = "/srv/cray"
   }
 
   provisioner "shell" {
@@ -127,7 +103,10 @@ build {
       "ARTIFACTORY_USER=${var.artifactory_user}",
       "ARTIFACTORY_TOKEN=${var.artifactory_token}"
     ]
-    inline = ["bash -c /srv/cray/custom/repos.sh"]
+    inline = [
+      "bash -c '. /srv/cray/csm-rpms/scripts/rpm-functions.sh; setup-package-repos'"
+    ]
+    valid_exit_codes = [0, 123]
   }
 
   provisioner "shell" {
@@ -135,82 +114,94 @@ build {
       "bash -c '. /srv/cray/csm-rpms/scripts/rpm-functions.sh; get-current-package-list /tmp/initial.packages explicit'",
       "bash -c '. /srv/cray/csm-rpms/scripts/rpm-functions.sh; get-current-package-list /tmp/initial.deps.packages deps'"
     ]
-    only = [
-      "qemu.application",
-      "virtualbox-ovf.application"
+    only = ["qemu.application", "virtualbox-ovf.application"]
+  }
+
+  // Install packages by context (e.g. base (a.k.a. common), google, or metal)
+  provisioner "shell" {
+    inline = [
+      "bash -c '. /srv/cray/csm-rpms/scripts/rpm-functions.sh; install-packages /srv/cray/csm-rpms/packages/node-image-non-compute-common/base.packages'"
     ]
+    valid_exit_codes = [0, 123]
   }
 
   provisioner "shell" {
-    script = "${path.root}/provisioners/metal/hpc.sh"
-    only = [
-      "qemu.application",
-      "virtualbox-ovf.application"
+    inline = [
+      "bash -c '. /srv/cray/csm-rpms/scripts/rpm-functions.sh; install-packages /srv/cray/csm-rpms/packages/node-image-non-compute-common/google.packages'"
     ]
+    valid_exit_codes = [0, 123]
+    only             = ["googlecompute.application"]
   }
 
   provisioner "shell" {
     inline = [
-      "bash -c '. /srv/cray/csm-rpms/scripts/rpm-functions.sh; install-packages /srv/cray/csm-rpms/packages/node-image-non-compute-common/base.packages'"]
-    valid_exit_codes = [0, 123]
-  }
-
-  provisioner "shell" {
-    inline = [
-      "bash -c '. /srv/cray/csm-rpms/scripts/rpm-functions.sh; install-packages /srv/cray/csm-rpms/packages/node-image-non-compute-common/metal.packages'"]
-    valid_exit_codes = [0, 123]
-    only = [
-      "qemu.application",
-      "virtualbox-ovf.application"
+      "bash -c '. /srv/cray/csm-rpms/scripts/rpm-functions.sh; install-packages /srv/cray/csm-rpms/packages/node-image-non-compute-common/metal.packages'"
     ]
-  }
-
-  provisioner "shell" {
-    inline = [
-      "bash -c '. /srv/cray/csm-rpms/scripts/rpm-functions.sh; install-packages /srv/cray/csm-rpms/packages/node-image-non-compute-common/cms.packages'"]
     valid_exit_codes = [0, 123]
+    only             = ["qemu.application", "virtualbox-ovf.application"]
   }
 
+  // Setup each context (e.g. common, google, and metal)
   provisioner "shell" {
-    inline = [
-      "bash -c '. /srv/cray/csm-rpms/scripts/rpm-functions.sh; install-packages /srv/cray/application/application.packages'"]
-    valid_exit_codes = [0, 123]
+    script = "${path.root}/provisioners/common/setup.sh"
   }
 
-  provisioner "shell" {
-    script = "${path.root}/provisioners/common/install.sh"
+  provisioner "ansible-local" {
+    inventory_file = "${var.vendor_path}/vendor/github.com/Cray-HPE/metal-provision/packer.yml"
+    playbook_dir   = "${var.vendor_path}/vendor/github.com/Cray-HPE/metal-provision"
+    playbook_file  = "${var.vendor_path}/vendor/github.com/Cray-HPE/metal-provision/pb_ncn_common.yml"
+    command        = "source /etc/ansible/csm_ansible/bin/activate && ANSIBLE_STDOUT_CALLBACK=debug PYTHONUNBUFFERED=1 /etc/ansible/csm_ansible/bin/ansible-playbook --tags common"
   }
 
-  provisioner "shell" {
-    script = "${path.root}/provisioners/common/csm/ansible.sh"
+  provisioner "ansible-local" {
+    inventory_file = "${var.vendor_path}/vendor/github.com/Cray-HPE/metal-provision/packer.yml"
+    playbook_dir   = "${var.vendor_path}/vendor/github.com/Cray-HPE/metal-provision"
+    playbook_file  = "${var.vendor_path}/vendor/github.com/Cray-HPE/metal-provision/pb_ncn_common.yml"
+    command        = "source /etc/ansible/csm_ansible/bin/activate && ANSIBLE_STDOUT_CALLBACK=debug PYTHONUNBUFFERED=1 /etc/ansible/csm_ansible/bin/ansible-playbook --tags google"
+    only           = ["googlecompute.application"]
   }
 
-  provisioner "shell" {
-    script = "${path.root}/provisioners/common/python_symlink.sh"
+  provisioner "ansible-local" {
+    inventory_file = "${var.vendor_path}/vendor/github.com/Cray-HPE/metal-provision/packer.yml"
+    playbook_dir   = "${var.vendor_path}/vendor/github.com/Cray-HPE/metal-provision"
+    playbook_file  = "${var.vendor_path}/vendor/github.com/Cray-HPE/metal-provision/pb_ncn_common.yml"
+    command        = "source /etc/ansible/csm_ansible/bin/activate && ANSIBLE_STDOUT_CALLBACK=debug PYTHONUNBUFFERED=1 /etc/ansible/csm_ansible/bin/ansible-playbook --tags metal"
+    only           = ["qemu.application", "virtualbox-ovf.application"]
   }
 
+  // Creates a virtualenv for GCP
   provisioner "shell" {
-    script = "${path.root}/provisioners/common/cms/install.sh"
+    script = "${path.root}/provisioners/google/install.sh"
+    only   = ["googlecompute.application"]
+
   }
 
   provisioner "shell" {
     script = "${path.root}/provisioners/metal/install.sh"
-    only = [
-      "qemu.application",
-      "virtualbox-ovf.application"
-    ]
+    only   = ["qemu.application", "virtualbox-ovf.application"]
   }
 
-  provisioner "shell" {
-    script = "${path.root}/provisioners/common/cos/install.sh"
+  provisioner "ansible-local" {
+    inventory_file = "${var.vendor_path}/vendor/github.com/Cray-HPE/metal-provision/packer.yml"
+    playbook_dir   = "${var.vendor_path}/vendor/github.com/Cray-HPE/metal-provision"
+    playbook_file  = "${var.vendor_path}/vendor/github.com/Cray-HPE/metal-provision/pb_ncn_common_team.yml"
+    command        = "source /etc/ansible/csm_ansible/bin/activate && ANSIBLE_STDOUT_CALLBACK=debug PYTHONUNBUFFERED=1 /etc/ansible/csm_ansible/bin/ansible-playbook --tags common"
   }
 
-  provisioner "shell" {
-    script = "${path.root}/provisioners/common/cos/rsyslog.sh"
+  provisioner "ansible-local" {
+    inventory_file = "${var.vendor_path}/vendor/github.com/Cray-HPE/metal-provision/packer.yml"
+    playbook_dir   = "${var.vendor_path}/vendor/github.com/Cray-HPE/metal-provision"
+    playbook_file  = "${var.vendor_path}/vendor/github.com/Cray-HPE/metal-provision/pb_ncn_common_team.yml"
+    command        = "source /etc/ansible/csm_ansible/bin/activate && ANSIBLE_STDOUT_CALLBACK=debug PYTHONUNBUFFERED=1 /etc/ansible/csm_ansible/bin/ansible-playbook --tags google"
+    only           = ["googlecompute.application"]
   }
 
-  provisioner "shell" {
-    script = "${path.root}/provisioners/common/kernel/modules.sh"
+  provisioner "ansible-local" {
+    inventory_file = "${var.vendor_path}/vendor/github.com/Cray-HPE/metal-provision/packer.yml"
+    playbook_dir   = "${var.vendor_path}/vendor/github.com/Cray-HPE/metal-provision"
+    playbook_file  = "${var.vendor_path}/vendor/github.com/Cray-HPE/metal-provision/pb_ncn_common_team.yml"
+    command        = "source /etc/ansible/csm_ansible/bin/activate && ANSIBLE_STDOUT_CALLBACK=debug PYTHONUNBUFFERED=1 /etc/ansible/csm_ansible/bin/ansible-playbook --tags metal"
+    only           = ["qemu.application", "virtualbox-ovf.application"]
   }
 
   provisioner "shell" {
@@ -219,106 +210,57 @@ build {
       "bash -c '. /srv/cray/csm-rpms/scripts/rpm-functions.sh; get-current-package-list /tmp/installed.deps.packages deps'",
       "bash -c 'zypper lr -e /tmp/installed.repos'"
     ]
-    only = [
-      "qemu.application",
-      "virtualbox-ovf.application"
-    ]
+    only = ["qemu.application", "virtualbox-ovf.application"]
   }
 
   provisioner "file" {
     direction = "download"
-    sources = [
+    sources   = [
       "/tmp/initial.deps.packages",
       "/tmp/initial.packages",
       "/tmp/installed.deps.packages",
-      "/tmp/installed.packages"
+      "/tmp/installed.packages",
+      "/tmp/installed.repos"
     ]
     destination = "${var.output_directory}/"
-    only = [
-      "qemu.application",
-      "virtualbox-ovf.application"
+    only        = ["qemu.application", "virtualbox-ovf.application"]
+  }
+
+  provisioner "shell" {
+    inline = [
+      "bash -c '. /srv/cray/csm-rpms/scripts/rpm-functions.sh; cleanup-package-repos'"
     ]
+  }
+
+  provisioner "shell" {
+    inline = [
+      "bash -c '. /srv/cray/csm-rpms/scripts/rpm-functions.sh; cleanup-all-repos'"
+    ]
+  }
+
+  provisioner "shell" {
+    script = "${path.root}/provisioners/common/cleanup.sh"
+  }
+
+  provisioner "shell" {
+    inline = [
+      "bash -c '/srv/cray/scripts/common/create-kis-artifacts.sh'"
+    ]
+    only = ["qemu.kubernetes", "qemu.storage-ceph"]
   }
 
   provisioner "file" {
-    direction = "download"
-    source = "/tmp/installed.repos"
-    destination = "${var.output_directory}/installed.repos"
-    only = [
-      "qemu.application",
-      "virtualbox-ovf.application"
+    direction   = "download"
+    source      = "/squashfs/"
+    destination = "${var.output_directory}/${source.name}/"
+    only        = ["qemu.kubernetes", "qemu.storage-ceph"]
+  }
+
+  provisioner "shell" {
+    inline = [
+      "bash -c '/srv/cray/scripts/common/cleanup-kis-artifacts.sh'"
     ]
-  }
-
-  provisioner "shell" {
-    inline = [
-      "bash -c '. /srv/cray/csm-rpms/scripts/rpm-functions.sh; cleanup-package-repos'"]
-  }
-
-  provisioner "shell" {
-    inline = [
-      "bash -c '. /srv/cray/csm-rpms/scripts/rpm-functions.sh; cleanup-all-repos'"]
-  }
-
-  provisioner "shell" {
-    script = "${path.root}/files/scripts/common/cleanup.sh"
-  }
-
-  provisioner "shell" {
-    script = "${path.root}/provisioners/metal/cleanup.sh"
-  }
-
-  provisioner "shell" {
-    inline = [
-      "bash -c '/srv/cray/scripts/common/create-kis-artifacts.sh'"]
-    only = ["qemu.application"]
-  }
-
-  provisioner "file" {
-    direction = "download"
-    source = "/tmp/kis.tar.gz"
-    destination = "${var.output_directory}/"
-    only = ["qemu.application"]
-  }
-
-  provisioner "shell" {
-    inline = [
-      "bash -c '/srv/cray/scripts/common/cleanup-kis-artifacts.sh'"]
-    only = ["qemu.application"]
-  }
-
-  provisioner "shell" {
-    inline = [
-      "bash -c 'goss -g /srv/cray/tests/common/goss-image-common.yaml validate -f junit | tee /tmp/goss_out.xml'"]
-    only = [
-      "qemu.application",
-      "virtualbox-ovf.application"
-    ]
-  }
-
-  provisioner "shell" {
-    inline = [
-      "bash -c 'goss -g /srv/cray/tests/metal/goss-image-common.yaml validate -f junit | tee /tmp/goss_metal_out.xml'"]
-    only = [
-      "qemu.application",
-      "virtualbox-ovf.application"
-    ]
-  }
-
-  provisioner "shell" {
-    inline = [
-      "bash -c 'goss -g /srv/cray/tests/google/goss-image-common.yaml validate -f junit | tee /tmp/goss_google_out.xml'"]
-    only = ["googlecompute.application"]
-  }
-
-  provisioner "file" {
-    direction = "download"
-    source = "/tmp/goss_out.xml"
-    destination = "${var.output_directory}/test-results.xml"
-    only = [
-      "qemu.application",
-      "virtualbox-ovf.application"
-    ]
+    only = ["qemu.kubernetes", "qemu.storage-ceph"]
   }
 
   post-processors {
@@ -334,8 +276,15 @@ build {
     }
     post-processor "shell-local" {
       inline = [
-        "if cat ${var.output_directory}/test-results.xml | grep '<failure>'; then echo 'Error: goss test failures found! See build output for details'; exit 1; fi"]
-      only   = ["qemu.application"]
+        "echo 'Rename filesystem.squashfs and move remaining files to receive the image ID'",
+        "ls -lR ./${var.output_directory}/${source.name}",
+        "mv ${var.output_directory}/${source.name}/squashfs/filesystem.squashfs ${var.output_directory}/${source.name}/${source.name}.squashfs",
+        "mv ${var.output_directory}/${source.name}/squashfs/*.kernel ${var.output_directory}/${source.name}/",
+        "mv ${var.output_directory}/${source.name}/squashfs/initrd.img.xz ${var.output_directory}/${source.name}/",
+        "rm -rf ${var.output_directory}/${source.name}/squashfs",
+      ]
+      only = ["qemu.kubernetes", "qemu.storage-ceph"]
     }
   }
+
 }
