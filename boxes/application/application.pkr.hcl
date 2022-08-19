@@ -259,21 +259,21 @@ build {
     inline = [
       "bash -c '/srv/cray/scripts/common/create-kis-artifacts.sh'"
     ]
-    only = ["qemu.kubernetes", "qemu.storage-ceph"]
+    only   = ["qemu.application", "virtualbox-ovf.application"]
   }
 
   provisioner "file" {
     direction   = "download"
     source      = "/squashfs/"
     destination = "${var.output_directory}/${source.name}/"
-    only        = ["qemu.kubernetes", "qemu.storage-ceph"]
+    only   = ["qemu.application", "virtualbox-ovf.application"]
   }
 
   provisioner "shell" {
     inline = [
       "bash -c '/srv/cray/scripts/common/cleanup-kis-artifacts.sh'"
     ]
-    only = ["qemu.kubernetes", "qemu.storage-ceph"]
+    only   = ["qemu.application", "virtualbox-ovf.application"]
   }
 
   post-processors {
@@ -285,7 +285,7 @@ build {
         "tar -xzvf ${var.output_directory}/kis.tar.gz -C ${var.output_directory}",
         "rm ${var.output_directory}/kis.tar.gz"
       ]
-      only   = ["qemu.application"]
+      only   = ["qemu.application", "virtualbox-ovf.application"]
     }
     post-processor "shell-local" {
       inline = [
@@ -296,7 +296,7 @@ build {
         "mv ${var.output_directory}/${source.name}/squashfs/initrd.img.xz ${var.output_directory}/${source.name}/",
         "rm -rf ${var.output_directory}/${source.name}/squashfs",
       ]
-      only = ["qemu.kubernetes", "qemu.storage-ceph"]
+      only   = ["qemu.application", "virtualbox-ovf.application"]
     }
   }
 
