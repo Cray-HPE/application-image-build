@@ -114,27 +114,27 @@ pipeline {
         }
 
         stage('Base Layers') {
-		when {
-			expression { env.TAG_NAME == null && (!(BRANCH_NAME ==~ promotionToken) || (BRANCH_NAME ==~ promotionToken && params.buildAndPublish)) }
-			expression { params.rebuildBaseImage }
-		}
-		steps {
-			dir(env.NODE_IMAGE_BUILD) {
-				withCredentials([
-					string(credentialsId: 'sles15-initial-root-password', variable: 'SLES15_INITIAL_ROOT_PASSWORD')
-				]) {
-					script {
-                                                def arguments
-                                                arguments = "-only=qemu.sles15-base -var 'source_iso_uri=iso/${env.ISO}' -var 'ssh_password=${SLES15_INITIAL_ROOT_PASSWORD}' -var 'cpus=${NPROC}' -var 'memory=${NRAM}' -var 'artifact_version=${VERSION}'"
-                                                publishCsmImages.build(arguments, 'boxes/sles15-base/')
-                                                publishCsmImages.prepareArtifacts(ARTIFACTS_DIRECTORY_BASE, VERSION)
-                                                props = "build.number=${env.VERSION};build.url=${env.BUILD_URL};vcs.revision-short=${GIT_COMMIT[0..6]};build.source-artifact=${env.ISO_URL}/${env.ISO}"
-                                                publishCsmImages(artifactoryRepo: IMAGE_REPO, pattern: ARTIFACTS_DIRECTORY_BASE, imageName: 'sles15-base', version: env.VERSION, props: props)
-					}
-				}
-			}
-		}
-	}
+            when {
+                expression { env.TAG_NAME == null && (!(BRANCH_NAME ==~ promotionToken) || (BRANCH_NAME ==~ promotionToken && params.buildAndPublish)) }
+                expression { params.rebuildBaseImage }
+            }
+            steps {
+                dir(env.NODE_IMAGE_BUILD) {
+                    withCredentials([
+                        string(credentialsId: 'sles15-initial-root-password', variable: 'SLES15_INITIAL_ROOT_PASSWORD')
+                            ]) {
+                            script {
+                                def arguments
+                                arguments = "-only=qemu.sles15-base -var 'source_iso_uri=iso/${env.ISO}' -var 'ssh_password=${SLES15_INITIAL_ROOT_PASSWORD}' -var 'cpus=${NPROC}' -var 'memory=${NRAM}' -var 'artifact_version=${VERSION}'"
+                                publishCsmImages.build(arguments, 'boxes/sles15-base/')
+                                publishCsmImages.prepareArtifacts(ARTIFACTS_DIRECTORY_BASE, VERSION)
+                                props = "build.number=${env.VERSION};build.url=${env.BUILD_URL};vcs.revision-short=${GIT_COMMIT[0..6]};build.source-artifact=${env.ISO_URL}/${env.ISO}"
+                                publishCsmImages(artifactoryRepo: IMAGE_REPO, pattern: ARTIFACTS_DIRECTORY_BASE, imageName: 'sles15-base', version: env.VERSION, props: props)
+                        }
+                    }
+                }
+            }
+        }
 
         stage('Application Layers') {
             when {

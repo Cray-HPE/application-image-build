@@ -268,34 +268,24 @@ build {
     inline = [
       "bash -c '/srv/cray/scripts/common/create-kis-artifacts.sh'"
     ]
-    only   = ["qemu.application", "virtualbox-ovf.application"]
+    only = ["qemu.application", "virtualbox-ovf.application"]
   }
 
   provisioner "file" {
     direction   = "download"
     source      = "/squashfs/"
     destination = "${var.output_directory}/${source.name}/"
-    only   = ["qemu.application", "virtualbox-ovf.application"]
+    only = ["qemu.application", "virtualbox-ovf.application"]
   }
 
   provisioner "shell" {
     inline = [
       "bash -c '/srv/cray/scripts/common/cleanup-kis-artifacts.sh'"
     ]
-    only   = ["qemu.application", "virtualbox-ovf.application"]
+    only = ["qemu.application", "virtualbox-ovf.application"]
   }
 
   post-processors {
-    post-processor "shell-local" {
-      inline = [
-        "echo 'Extracting KIS artifacts package'",
-        "echo 'Putting image name into the squashFS filename.'",
-        "ls -lR ./${var.output_directory}",
-        "tar -xzvf ${var.output_directory}/kis.tar.gz -C ${var.output_directory}",
-        "rm ${var.output_directory}/kis.tar.gz"
-      ]
-      only   = ["qemu.application", "virtualbox-ovf.application"]
-    }
     post-processor "shell-local" {
       inline = [
         "echo 'Rename filesystem.squashfs and move remaining files to receive the image ID'",
@@ -305,7 +295,7 @@ build {
         "mv ${var.output_directory}/${source.name}/squashfs/initrd.img.xz ${var.output_directory}/${source.name}/",
         "rm -rf ${var.output_directory}/${source.name}/squashfs",
       ]
-      only   = ["qemu.application", "virtualbox-ovf.application"]
+      only = ["qemu.application", "virtualbox-ovf.application"]
     }
   }
 
