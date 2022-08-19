@@ -1,0 +1,2 @@
+# COS
+https://arti.hpc.amslabs.hpecorp.net/artifactory/cos-rpm-stable-local/release/cos-2.3/sle15_sp3_ncn/                         cray-cos-sle-15sp3-SHASTA-OS-cos                  --no-gpgcheck -p 89                   cray/cos/sle-15sp3-ncn
