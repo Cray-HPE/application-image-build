@@ -97,6 +97,11 @@ build {
     destination = "/srv/cray"
   }
 
+  provisioner "file" {
+    source      = "boxes/application/files"
+    destination = "/srv/cray"
+  }
+
   provisioner "shell" {
     environment_vars = [
       "CUSTOM_REPOS_FILE=${var.custom_repos_file}",
@@ -136,6 +141,14 @@ build {
   provisioner "shell" {
     inline = [
       "bash -c '. /srv/cray/csm-rpms/scripts/rpm-functions.sh; install-packages /srv/cray/csm-rpms/packages/node-image-non-compute-common/metal.packages'"
+    ]
+    valid_exit_codes = [0, 123]
+    only             = ["qemu.application", "virtualbox-ovf.application"]
+  }
+
+  provisioner "shell" {
+    inline = [
+      "bash -c '. /srv/cray/csm-rpms/scripts/rpm-functions.sh; install-packages /srv/cray/files/application.packages'"
     ]
     valid_exit_codes = [0, 123]
     only             = ["qemu.application", "virtualbox-ovf.application"]
