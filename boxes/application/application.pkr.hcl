@@ -108,7 +108,7 @@ build {
     ]
     inline = [
       "bash -c 'echo $COS_CN_REPO >> /srv/cray/csm-rpms/repos/cray.repos'",
-      "bash -c 'echo force_add_dracutmodules+=\"dmsquash-live livenet mdraid\" >> /srv/cray/resources/metal/dracut.conf.d/01-application.conf'"
+      "bash -c 'echo force_add_dracutmodules+=\"dmsquash-live livenet\" >> /etc/dracut.conf.d/01-application.conf'"
     ]
   }
 
