@@ -373,7 +373,7 @@ pipeline {
             when { tag "*" }
             steps {
                 withCredentials([
-                        usernamePassword(credentialsId: 'artifactory-algol60', usernameVariable: 'ARTIFACTORY_USER', passwordVariable: 'ARTIFACTORY_TOKEN'),
+                        usernamePassword(credentialsId: 'artifactory-algol60-publish', usernameVariable: 'ARTIFACTORY_USER', passwordVariable: 'ARTIFACTORY_TOKEN'),
                         file(credentialsId: 'google-image-manager', variable: 'GOOGLE_CLOUD_SA_KEY')
                 ]) {
                     script {
@@ -393,12 +393,24 @@ pipeline {
                             echo err.getMessage()
                             echo 'The build attempted to publish a ncn-common image but none was found, this may or may not be expected.'
                         }
-                        /*
-                            These three layers are always built and required for publishing.
-                        */
-                        publishCsmImages.release('kubernetes', GIT_COMMIT[0..6], env.TAG_NAME, GOOGLE_CLOUD_SA_KEY)
-                        publishCsmImages.release('pre-install-toolkit', GIT_COMMIT[0..6], env.TAG_NAME, GOOGLE_CLOUD_SA_KEY)
-                        publishCsmImages.release('storage-ceph', GIT_COMMIT[0..6], env.TAG_NAME, GOOGLE_CLOUD_SA_KEY)
+                        try {
+                            publishCsmImages.release('pre-install-toolkit', GIT_COMMIT[0..6], env.TAG_NAME, GOOGLE_CLOUD_SA_KEY)
+                        } catch (err) {
+                            echo err.getMessage()
+                            echo 'The build attempted to publish a pre-install-toolkit image but none was found, this may or may not be expected.'
+                        }
+                        try {
+                            publishCsmImages.release('kubernetes', GIT_COMMIT[0..6], env.TAG_NAME, GOOGLE_CLOUD_SA_KEY)
+                        } catch (err) {
+                            echo err.getMessage()
+                            echo 'The build attempted to publish a kubernetes image but none was found, this may or may not be expected.'
+                        }
+                        try {
+                            publishCsmImages.release('storage-ceph', GIT_COMMIT[0..6], env.TAG_NAME, GOOGLE_CLOUD_SA_KEY)
+                        } catch (err) {
+                            echo err.getMessage()
+                            echo 'The build attempted to publish a storage-ceph image but none was found, this may or may not be expected.'
+                        }
                     }
                 }
             }

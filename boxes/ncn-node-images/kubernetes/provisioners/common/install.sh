@@ -39,7 +39,12 @@ mkdir -p /var/run/sds
 echo "${KUBERNETES_PULL_VERSION}" > /etc/cray/kubernetes/version
 
 echo "Installing kata containers"
-wget -q -c https://github.com/kata-containers/kata-containers/releases/download/${KATA_VERSION}/kata-static-${KATA_VERSION}-x86_64.tar.xz -O - | tar -xJ -C /
+wget -q -c -O /tmp/kata-static.tar.xz https://github.com/kata-containers/kata-containers/releases/download/${KATA_VERSION}/kata-static-${KATA_VERSION}-x86_64.tar.xz
+tar -xJf /tmp/kata-static.tar.xz -C /
+sudo chown root.root /
+# shellcheck disable=SC2086,SC2046
+sudo chown root.root $(tar tJf /tmp/kata-static.tar.xz | sed 's|^|/|g' | xargs echo)
+rm /tmp/kata-static.tar.xz
 
 echo "Installing etcd binaries"
 mkdir -p /tmp/etcd
@@ -84,6 +89,9 @@ echo "Ensuring swap is off" && swapoff -a
 echo "Installing containerd CRI and configuring the system for containerd"
 wget -q -O /tmp/cri-containerd.tar.gz https://github.com/containerd/containerd/releases/download/v${CONTAINERD_VERSION}/cri-containerd-cni-${CONTAINERD_VERSION}-linux-amd64.tar.gz
 tar --no-overwrite-dir -C / -xvzf /tmp/cri-containerd.tar.gz
+sudo chown root.root /
+# shellcheck disable=SC2086,SC2046
+sudo chown root.root $(tar tzf /tmp/cri-containerd.tar.gz | sed 's|^|/|g' | xargs echo)
 rm /tmp/cri-containerd.tar.gz
 ln -svnf /srv/cray/resources/common/containerd/containerd.service /etc/systemd/system/containerd.service
 mkdir -p /etc/containerd
