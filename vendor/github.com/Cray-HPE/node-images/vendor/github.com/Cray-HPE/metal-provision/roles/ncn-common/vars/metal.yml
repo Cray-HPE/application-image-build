@@ -28,7 +28,7 @@ dhcp:
   - regexp: '^DHCLIENT_FQDN_UPDATE='
     line: 'DHCLIENT_FQDN_UPDATE="both"'
   - regexp: '^DHCLIENT_SET_HOSTNAME='
-    line: 'DHCLIENT_SET_HOSTNAME="no"'
+    line: 'DHCLIENT_SET_HOSTNAME="yes"'
 services:
   - name: ahslog
     enabled: no
