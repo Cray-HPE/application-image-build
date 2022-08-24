@@ -34,6 +34,10 @@ file:
     exists: false
   /etc/kubernetes:
     exists: true
+  /:
+    exists: true
+    owner: root
+    group: root
 user:
   sshd:
     exists: true
