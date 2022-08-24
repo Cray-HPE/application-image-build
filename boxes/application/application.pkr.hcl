@@ -265,6 +265,10 @@ build {
   }
 
   provisioner "shell" {
+    script = "${path.root}/files/cleanup.sh"
+  }
+
+  provisioner "shell" {
     inline = [
       "bash -c '/srv/cray/scripts/common/create-kis-artifacts.sh'"
     ]
