@@ -102,13 +102,17 @@ build {
     destination = "/srv/cray"
   }
 
+  provisioner "file" {
+    source      = "boxes/application/files/01-application.conf"
+    destination = "/etc/dracut.conf.d/01-application.conf"
+  }
+
   provisioner "shell" {
     environment_vars = [
       "COS_CN_REPO=https://arti.hpc.amslabs.hpecorp.net/artifactory/cos-rpm-stable-local/release/cos-2.3/sle15_sp3_cn/ cray-cos-sle-15sp3-SHASTA-OS-cos-cn --no-gpgcheck -p 89 cray/cos/sle-15sp3-cn",
     ]
     inline = [
       "bash -c 'echo $COS_CN_REPO >> /srv/cray/csm-rpms/repos/cray.repos'",
-      "bash -c 'echo force_add_dracutmodules+=\"dmsquash-live livenet\" >> /etc/dracut.conf.d/01-application.conf'"
     ]
   }
 
