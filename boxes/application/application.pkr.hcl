@@ -108,6 +108,8 @@ build {
     ]
     inline = [
       "bash -c 'echo $COS_CN_REPO >> /srv/cray/csm-rpms/repos/cray.repos'",
+      "bash -c 'cp /srv/cray/cmdline-perm.service /usr/lib/systemd/system/cmdline-perm.service'",
+      "bash -c 'systemctl enable cmdline-perm'"
     ]
   }
 

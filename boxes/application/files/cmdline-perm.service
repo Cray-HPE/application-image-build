@@ -1,0 +1,13 @@
+[Unit]
+Description=Reduce permissions on /proc/cmdline
+After=network.service
+Before=sshd.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/chmod 0400 /proc/cmdline
+Restart=no
+RemainAfterExit=no
+
+[Install]
+WantedBy=multi-user.target
