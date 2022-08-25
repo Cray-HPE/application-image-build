@@ -1,203 +1,209 @@
 variable "cpus" {
-  type = string
+  type    = string
   default = "2"
 }
 
 variable "disk_cache" {
-  type = string
+  type    = string
   default = "unsafe"
 }
 
 variable "disk_size" {
-  type = string
+  type    = string
   default = "16000"
 }
 
 variable "headless" {
-  type = bool
+  type    = bool
   default = true
 }
 
 variable "image_name" {
-  type = string
+  type    = string
   default = "application"
 }
 
 variable "memory" {
-  type = string
+  type    = string
   default = "4096"
 }
 
+variable "vendor_path" {
+  type    = string
+  default = "vendor/github.com/Cray-HPE/node-images/"
+}
+
 variable "vbox_source_path" {
-  type = string
+  type    = string
   default = "output-sles15-base/sles15-base.ovf"
 }
 
 variable "source_iso_checksum" {
-  type = string
+  type    = string
   default = "none"
 }
 
 variable "source_iso_uri" {
-  type = string
+  type    = string
   default = "output-sles15-base/sles15-base.qcow2"
 }
 
 variable "ssh_password" {
   sensitive = true
-  type = string
-  default = null
+  type      = string
+  default   = null
 }
 
 variable "ssh_username" {
-  type = string
+  type    = string
   default = "root"
 }
 
 variable "ssh_wait_timeout" {
-  type = string
+  type    = string
   default = "10000s"
 }
 
 variable "output_directory" {
-  type = string
+  type    = string
   default = "output-application"
 }
 
 variable "artifact_version" {
-  type = string
+  type    = string
   default = "none"
 }
 
-variable "kernel_version" {
+variable "create_kis_artifacts_arguments" {
   type    = string
-  default = "5.3.18-150300.59.43.1"
+  default = "kernel-initrd-squashfs"
 }
 
-/*rmtag variable "create_kis_artifacts_arguments" {
-  type = string
-  default = "kernel-initrd-only"
-}*/
-
 variable "vbox_format" {
-  type = string
+  type    = string
   default = "ovf"
 }
 
 variable "qemu_accelerator" {
-  type = string
+  type    = string
   default = "kvm"
 }
 
 variable "qemu_format" {
-  type = string
+  type    = string
   default = "qcow2"
 }
 
 variable "qemu_default_display" {
-  type = bool
+  type    = bool
   default = true
 }
 
 variable "qemu_display" {
-  type = string
+  type    = string
   default = "none"
 }
 
 variable "qemu_disk_compression" {
-  type = bool
+  type    = bool
   default = true
 }
 
 variable "qemu_skip_compaction" {
-  type = bool
+  type    = bool
   default = false
 }
 
 variable "vnc_bind_address" {
-  type = string
+  type    = string
   default = "0.0.0.0"
 }
 
 variable "artifactory_user" {
-  type = string
+  type    = string
   default = ""
 }
 
 variable "artifactory_token" {
-  type = string
-  default = ""
+  type      = string
+  default   = ""
+  sensitive = true
 }
 
 variable "custom_repos_file" {
-  type = string
+  type    = string
   default = ""
 }
 
+variable "google_machine_type" {
+  type    = string
+  default = "n2-standard-32"
+}
+
 variable "google_destination_image_family" {
-  type = string
+  type    = string
   default = "vshasta-application-rc"
 }
 
 variable "google_destination_project_network" {
-  type = string
+  type    = string
   default = "projects/shared-vpc-interconnect-202004/global/networks/default-network"
 }
 
 variable "google_subnetwork" {
-  type = string
+  type    = string
   default = "projects/shared-vpc-interconnect-202004/regions/us-central1/subnetworks/artifactory-subnet"
 }
 
 variable "google_zone" {
-  type = string
+  type    = string
   default = "us-central1-a"
 }
 
 variable "google_destination_project_id" {
-  type = string
+  type    = string
   default = "artifactory-202004"
 }
 
 variable "google_network_project_id" {
-  type = string
+  type    = string
   default = "shared-vpc-interconnect-202004"
 }
 
 variable "google_service_account_email" {
-  type = string
+  type    = string
   default = "image-manager@artifactory-202004.iam.gserviceaccount.com"
 }
 
 variable "google_use_internal_ip" {
-  type = bool
+  type    = bool
   default = true
 }
 
 variable "google_source_image_project_id" {
-  type = list(string)
+  type    = list(string)
   default = ["artifactory-202004"]
 }
 
 variable "google_source_image_family" {
-  type = string
+  type    = string
   default = "vshasta-sles15-base-rc"
 }
 
 variable "google_source_image_name" {
-  type = string
+  type    = string
   default = ""
 }
 variable "google_disk_size_gb" {
-  type = string
-  default = "100"
+  type    = string
+  default = "16"
 }
 variable "google_source_image_url" {
-  type = string
+  type    = string
   default = ""
 }
 
 variable "build_url" {
-  type = string
+  type    = string
   default = ""
 }

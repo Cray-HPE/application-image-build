@@ -1,0 +1,172 @@
+#
+# MIT License
+#
+# (C) Copyright 2022 Hewlett Packard Enterprise Development LP
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included
+# in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+# OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+# ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
+#
+file:
+  /etc/zypp/services.d/Basesystem_Module_15_SP2_x86_64.service:
+    exists: false
+  /etc/zypp/services.d/Server_Applications_Module_15_SP2_x86_64.service:
+    exists: false
+  /etc/zypp/services.d/Public_Cloud_Module_15_SP2_x86_64.service:
+    exists: false
+  /etc/zypp/services.d/SUSE_Linux_Enterprise_Server_15_SP2_x86_64.service:
+    exists: false
+  /var/adm/autoinstall/cache:
+    exists: false
+  /etc/kubernetes:
+    exists: true
+  /:
+    exists: true
+    owner: root
+    group: root
+user:
+  sshd:
+    exists: true
+    groups:
+      - sshd
+    home: /var/lib/sshd
+    shell: /sbin/nologin
+group:
+  sshd:
+    exists: true
+service:
+  ca-certificates:
+    enabled: true
+    running: false
+  chronyd:
+    enabled: true
+    running: true
+  containerd:
+    enabled: true
+    running: true
+  getty@tty1:
+    enabled: true
+    running: true
+  issue-generator:
+    enabled: true
+    running: false
+  kubelet:
+    enabled: true
+    running: false
+  purge-kernels:
+    enabled: true
+    running: false
+  rc-local:
+    enabled: true
+    running: false
+  rollback:
+    enabled: true
+    running: false
+  sshd:
+    enabled: true
+    running: true
+  spire-agent:
+    enabled: true
+    running: false
+  sshd:
+    enabled: true
+    running: true
+  wicked:
+    enabled: true
+    running: true
+  wickedd-auto4:
+    enabled: true
+    running: true
+  wickedd-dhcp4:
+    enabled: true
+    running: true
+  wickedd-dhcp6:
+    enabled: true
+    running: true
+  wickedd-nanny:
+    enabled: true
+    running: true
+process:
+  sshd:
+    running: true
+  dnsmasq:
+    running: false
+  cron:
+    running: true
+package:
+  curl:
+    installed: true
+  craycli:
+    installed: true
+  dnsmasq:
+    installed: true
+  ethtool:
+    installed: true
+  hpe-csm-goss-package:
+    installed: true
+  hpe-csm-scripts:
+    installed: true
+  hpe-csm-yq-package:
+    installed: true
+  ipmitool:
+    installed: true
+  kubectl:
+    installed: true
+  kubeadm:
+    installed: true
+  openssl:
+    installed: true
+  podman:
+    installed: true
+  rsync:
+    installed: true
+  tar:
+    installed: true
+  cray-cmstools-crayctldeploy:
+    installed: true
+  loftsman:
+    installed: true
+  manifestgen:
+    installed: true
+  cfs-trust:
+    installed: true
+  csm-node-identity:
+    installed: true
+  cfs-state-reporter:
+    installed: true
+  cray-heartbeat:
+    installed: true
+  platform-utils:
+    installed: true
+  libtiff5:
+    installed: true
+  cray-power-button:
+    installed: true
+  cray-prodmgr:
+    installed: true
+  cray-orca:
+    installed: true
+  cray-cps-utils:
+    installed: true
+  intlfonts-euro-bitmap-fonts:
+    installed: true
+  cray-sdu-rda:
+    installed: true
+  goss-servers:
+    installed: true
+  cray-auth-utils:
+    installed: true

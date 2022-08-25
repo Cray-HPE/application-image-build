@@ -30,7 +30,7 @@ jobs:
       - name: Fast Forward PR
         uses: endre-spotlab/fast-forward-js-action@2.1
         with:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.ADMIN_TOKEN }}
           production_branch: main
           staging_branch: develop
 
