@@ -26,6 +26,7 @@
 set -e
 
 echo "Setting up root SSH keys from 'cloud-init' (aka platform metadata)"
+mkdir -p /root/.ssh && chmod 700 /root/.ssh
 craysys metadata get root-private-key > /root/.ssh/id_rsa
 chmod 600 /root/.ssh/id_rsa
 craysys metadata get root-public-key > /root/.ssh/id_rsa.pub
@@ -41,7 +42,3 @@ while ! /etc/ansible/gcp/bin/python3 /srv/cray/scripts/google/update-dns.py; do
   sleep 5
 done
 systemctl restart cron
-# TODO: something is wiping out the authorized_keys file, at least on Virtual Shasta, figure it out
-#       traced it to something in either the update-dns.py above: restarting network services?
-#       or the cron restart above?
-cp /root/.ssh/id_rsa.pub /root/.ssh/authorized_keys

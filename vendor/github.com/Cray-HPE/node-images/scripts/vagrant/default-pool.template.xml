@@ -1,0 +1,11 @@
+<pool type='dir'>
+  <name>default</name>
+  <target>
+    <path>/var/lib/libvirt/images/</path>
+    <permissions>
+      <mode>0755</mode>
+      <owner>$libvirt_uid</owner>
+      <group>$libvirt_gid</group>
+    </permissions>
+  </target>
+</pool>

@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 #
 # MIT License
@@ -23,18 +23,21 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 #
-
-set -ex
+set -euo pipefail
 
 # Ensure that only the desired kernel version may be installed.
 # Clean up old kernels, if any. We should only ship with a single kernel.
 # Lock the kernel to prevent inadvertent updates.
-function kernel {
+function cleanup_kernel {
     local current_kernel
 
     # Grab this from csm-rpms, the running kernel may not match the kernel we installed and want until the image is rebooted.
     # This ensures we lock to what we want installed.
-    current_kernel="$(grep kernel-default /srv/cray/csm-rpms/packages/node-image-non-compute-common/base.packages | awk -F '=' '{print $NF}')"
+    current_kernel="$(grep kernel-default /srv/cray/csm-rpms/packages/node-image-common/base.packages | awk -F '=' '{print $NF}')"
+    if [ -z "$current_kernel" ]; then
+        echo >&2 'Failed to resolve the desired kernel version.'
+        exit 1
+    fi
 
     echo "Purging old kernels ... "
     zypper removelock kernel-default || echo 'No lock to remove'
@@ -47,31 +50,48 @@ function kernel {
     echo "Listing currently installed kernel-default RPM:"
     rpm -q kernel-default
 }
-kernel
 
-echo "removing our autoyast cache to ensure no lingering sensitive content remains there from install"
-rm -rf /var/adm/autoinstall/cache
+function cleanup_zypper {
+    echo "removing our autoyast cache to ensure no lingering sensitive content remains there from install"
+    rm -rf /var/adm/autoinstall/cache
+    zypper clean --all
+}
 
-echo "cleanup all the downloaded RPMs"
-zypper clean --all
+function cleanup_network {
+    echo "clean up network interface persistence"
+    rm -f /etc/udev/rules.d/*-net.rules
 
-echo "clean up network interface persistence"
-rm -f /etc/udev/rules.d/70-persistent-net.rules;
-touch /etc/udev/rules.d/75-persistent-net-generator.rules;
+    echo "purging wicked files"
+    rm -f /var/lib/wicked/*.xml  
+}
 
-echo "truncate any logs that have built up during the install"
-find /var/log/ -type f -name "*.log.*" -exec rm -rf {} \;
-find /var/log -type f -exec truncate --size=0 {} \;
+function cleanup_id {
+    echo "blank netplan machine-id (DUID) so machines get unique ID generated on boot"
+    truncate -s 0 /etc/machine-id
+    
+    echo "force a new random seed to be generated"
+    rm -f /var/lib/systemd/random-seed
+}
 
-echo "remove the contents of /tmp and /var/tmp"
-rm -rf /tmp/* /var/tmp/*
+function cleanup_history {
+    echo "truncate any logs that have built up during the install"
+    find /var/log/ -type f -name "*.log.*" -exec rm -rf {} \;
+    find /var/log -type f -exec truncate --size=0 {} \;
 
-echo "blank netplan machine-id (DUID) so machines get unique ID generated on boot"
-truncate -s 0 /etc/machine-id
+    echo "clear the history so our install isn't there"
+    rm -f /root/.wget-hsts
+    history -c
+    export HISTSIZE=0
+}
 
-echo "force a new random seed to be generated"
-rm -f /var/lib/systemd/random-seed
+function cleanup_tmp {
+    echo "remove the contents of /tmp and /var/tmp"
+    rm -rf /tmp/* /var/tmp/*
+}
 
-echo "clear the history so our install isn't there"
-rm -f /root/.wget-hsts
-export HISTSIZE=0
+cleanup_kernel
+cleanup_zypper
+cleanup_network
+cleanup_id
+cleanup_history
+cleanup_tmp

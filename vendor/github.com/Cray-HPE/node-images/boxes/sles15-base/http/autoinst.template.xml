@@ -13,7 +13,7 @@
     <addons config:type="list">
       <addon>
         <name>sle-module-public-cloud</name>
-        <version>${SLES15_SP_VERSION}</version>
+        <version>${SLES_VERSION}</version>
         <arch>x86_64</arch>
       </addon>
     </addons>
@@ -119,14 +119,7 @@
       <product>SLE_HPC</product>
     </products>
     <packages config:type='list'>
-<!-- START: CSM-RPMs dependencies -->
-      <package>jq</package>
-<!-- END: CSM-RPMs dependencies -->
-<!-- START: Ansible dependencies -->
-      <package>python3</package>
-      <package>python3-pip</package>
-<!-- END: Ansible dependencies -->
-      <package>squashfs</package>
+      <package>sudo</package>
       <package>wicked</package>
     </packages>
     <patterns config:type='list'>

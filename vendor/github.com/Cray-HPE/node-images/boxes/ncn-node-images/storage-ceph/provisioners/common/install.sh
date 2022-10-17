@@ -125,6 +125,10 @@ location = "localhost:5000"
 insecure = true
 
 [[registry]]
+location = "localhost:5000"
+insecure = true
+
+[[registry]]
 prefix = "localhost"
 location = "localhost:5000"
 insecure = true

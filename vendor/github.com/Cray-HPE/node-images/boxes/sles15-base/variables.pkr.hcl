@@ -1,3 +1,45 @@
+#
+# MIT License
+#
+# (C) Copyright 2022 Hewlett Packard Enterprise Development LP
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included
+# in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+# OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+# ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
+#
+packer {
+  // This list only includes required plugins for the pipeline.
+  // local-build plugins are not included; local-builds don't require all the pipeline plugins and vice-versa.
+  required_plugins {
+    googlecompute = {
+      version = ">= 1.0.14"
+      source  = "github.com/hashicorp/googlecompute"
+    }
+    qemu = {
+      version = ">= 1.0.5"
+      source  = "github.com/hashicorp/qemu"
+    }
+    vagrant = {
+      version = ">= 1.0.3"
+      source  = "github.com/hashicorp/vagrant"
+    }
+  }
+}
+
 variable "boot_wait" {
   type    = string
   default = "10s"
@@ -18,7 +60,6 @@ variable "vbox_disk_size" {
   type        = string
   default     = "42000"
   description = "The initial disk size for VirtualBox builds"
-
 }
 
 variable "disk_cache" {
@@ -29,6 +70,11 @@ variable "disk_cache" {
 variable "headless" {
   type    = bool
   default = true
+}
+
+variable "box_name" {
+  type    = string
+  default = "${env("BASE_BOX")}"
 }
 
 variable "image_name" {
@@ -46,15 +92,20 @@ variable "source_iso_checksum" {
   default = "none"
 }
 
+variable "source_box_uri" {
+  type    = string
+  default = "box/${env("BASE_BOX")}-Vagrant.x86_64-libvirt.box"
+}
+
 variable "source_iso_uri" {
   type    = string
-  default = "iso/SLE-15-SP3-Online-x86_64-GM-Media1.iso"
+  default = "iso/${env("BASE_ISO")}-Online-x86_64-GM-Media1.iso"
 }
 
 variable "ssh_password" {
   sensitive = true
   type      = string
-  default   = null
+  default   = "${env("SLES15_INITIAL_ROOT_PASSWORD")}"
 }
 
 variable "ssh_username" {
@@ -85,6 +136,11 @@ variable "create_kis_artifacts_arguments" {
 variable "vbox_format" {
   type    = string
   default = "ovf"
+}
+
+variable "vagrant_provider" {
+  type    = string
+  default = "libvirt"
 }
 
 variable "qemu_accelerator" {
@@ -126,19 +182,29 @@ variable "google_destination_image_family" {
   type    = string
   default = "vshasta-sles15-base-rc"
 }
+
 variable "google_destination_project_network" {
   type    = string
   default = "projects/shared-vpc-interconnect-202004/global/networks/default-network"
 }
+
 variable "google_subnetwork" {
   type    = string
   default = "projects/shared-vpc-interconnect-202004/regions/us-central1/subnetworks/artifactory-subnet"
 }
+
 variable "google_zone" {
   type    = string
   default = "us-central1-a"
 }
+
 variable "google_destination_project_id" {
   type    = string
   default = "artifactory-202004"
+}
+
+variable "sles15_registration_code" {
+  type      = string
+  default   = "${env("SLES15_REGISTRATION_CODE")}"
+  sensitive = true
 }

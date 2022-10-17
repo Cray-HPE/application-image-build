@@ -45,3 +45,11 @@
       tags: metal
   tags:
     - metal
+
+- name: Vagrant tasks
+  include_tasks:
+    file: vagrant.yml
+    apply:
+      tags: vagrant
+  tags:
+    - vagrant
