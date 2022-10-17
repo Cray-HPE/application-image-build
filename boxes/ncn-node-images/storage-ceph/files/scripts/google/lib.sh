@@ -294,5 +294,10 @@ function expand-root-disk() {
   echo "In expand-root-disk()"
   printf "Fix\n" | parted ---pretend-input-tty /dev/sda print
   printf "Yes\n100%%\n" | parted ---pretend-input-tty /dev/sda resizepart 2
-  resize2fs /dev/sda2
+  if ! resize2fs /dev/sda2; then
+    if ! xfs_growfs /dev/sda2; then
+      echo >&2 "Failed to resize disk"
+      exit 1
+    fi
+  fi
 }

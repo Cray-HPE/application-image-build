@@ -1,3 +1,45 @@
+#
+# MIT License
+#
+# (C) Copyright 2022 Hewlett Packard Enterprise Development LP
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included
+# in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+# OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+# ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
+#
+packer {
+  // This list only includes required plugins for the pipeline.
+  // local-build plugins are not included; local-builds don't require all the pipeline plugins and vice-versa.
+  required_plugins {
+    googlecompute = {
+      version = ">= 1.0.14"
+      source  = "github.com/hashicorp/googlecompute"
+    }
+    qemu = {
+      version = ">= 1.0.5"
+      source  = "github.com/hashicorp/qemu"
+    }
+    vagrant = {
+      version = ">= 1.0.3"
+      source  = "github.com/hashicorp/vagrant"
+    }
+  }
+}
+
 variable "cpus" {
   type    = string
   default = "2"
@@ -25,12 +67,7 @@ variable "image_name" {
 
 variable "memory" {
   type    = string
-  default = "4096"
-}
-
-variable "vbox_source_path" {
-  type    = string
-  default = "output-sles15-base/sles15-base.ovf"
+  default = "8196"
 }
 
 variable "source_iso_checksum" {
@@ -38,15 +75,30 @@ variable "source_iso_checksum" {
   default = "none"
 }
 
+variable "box_name" {
+  type    = string
+  default = "sles15-base"
+}
+
 variable "source_iso_uri" {
   type    = string
-  default = "output-sles15-base/sles15-base.qcow2"
+  default = "output-sles15-base-qemu/sles15-base.qcow2"
+}
+
+variable "source_box_uri" {
+  type    = string
+  default = "output-sles15-base-vagrant/sles15-base.box"
+}
+
+variable "vbox_source_path" {
+  type    = string
+  default = "output-sles15-base-virtualbox-iso/sles15-base.ovf"
 }
 
 variable "ssh_password" {
   sensitive = true
   type      = string
-  default   = null
+  default   = "${env("SLES15_INITIAL_ROOT_PASSWORD")}"
 }
 
 variable "ssh_username" {
@@ -77,6 +129,11 @@ variable "create_kis_artifacts_arguments" {
 variable "vbox_format" {
   type    = string
   default = "ovf"
+}
+
+variable "vagrant_provider" {
+  type    = string
+  default = "libvirt"
 }
 
 variable "qemu_accelerator" {
@@ -115,14 +172,15 @@ variable "vnc_bind_address" {
 }
 
 variable "artifactory_user" {
+  default   = "${env("ARTIFACTORY_USER")}"
+  sensitive = true
   type    = string
-  default = ""
 }
 
 variable "artifactory_token" {
-  type      = string
-  default   = ""
+  default   = "${env("ARTIFACTORY_TOKEN")}"
   sensitive = true
+  type      = string
 }
 
 variable "custom_repos_file" {
@@ -137,7 +195,7 @@ variable "google_machine_type" {
 
 variable "google_destination_image_family" {
   type    = string
-  default = "vshasta-non-compute-common-rc"
+  default = "vshasta-ncn-common-rc"
 }
 
 variable "google_destination_project_network" {

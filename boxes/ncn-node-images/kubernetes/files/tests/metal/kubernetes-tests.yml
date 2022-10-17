@@ -28,3 +28,9 @@ service:
   keepalived:
     enabled: false
     running: false
+  kubelet:
+    enabled: true
+    running: false
+  spire-agent:
+    enabled: true
+    running: false

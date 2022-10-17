@@ -22,7 +22,7 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 #
-set -ex
+set -euo pipefail
 
 function resize_root {
     local dev_disk
@@ -38,7 +38,7 @@ function resize_root {
         sgdisk --new=${dev_partition_nr}:0:0 --typecode=0:8e00 ${dev_disk}
         partprobe "$dev_disk"
 
-        if ! resize2fs "$dev_disk"; then
+        if ! resize2fs "${dev_disk}${dev_partition_nr}"; then
             if ! xfs_growfs ${dev_disk}${dev_partition_nr}; then
                 echo >&2 "Neither resize2fs nor xfs_growfs could resize the device. Potential filesystem mismatch on [$dev_disk]."
                 lsblk "$dev_disk"

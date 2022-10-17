@@ -9,13 +9,68 @@ images for any distributable medium.
 
 The listed software below will equip a local machine or buildserver to build for any medium (`.squashfs`, `.vbox`, and `.qcow2`).
 
+=== Artifact Types
+
+Each box in `boxes/` has several builders defined in the `.pkr.hcl` files.
+
+These builders each invoke `provisioners` and contain `files/` that're sorted into various contexts:
+
+[horizontal]
+`common`:: Image customization for all environments.
+`google`:: Tuning for artifacts intended for Google Cloud environments
+`metal`:: Tuning for artifacts intended for bare-metal environments
+`vagrant`:: Tuning for artifacts intended for Vagrant environments
+`virtualbox`:: Tuning for VirtualBox environments
++
+IMPORTANT: VirtualBox builds overlap with Metal builds, this means VirtualBox will invoke all Metal provisioners.
+These builds are not built by the pipeline and are only used locally. Think of VirtualBox builds as "metal in VirtualBox."
+These will be harder to run, since they emulate a bare-metal environment.
+
+All provisioner and file changes and additions should ideally go into `common`, the other groups such as `google` exist
+to run specific commands necessary for Google Cloud Compute. Anything not in `common` should be kept as minimal as
+possible as to keep consistency between our artifacts.
+
+For example:
+
+* Installing CEPH, and locking the kernel are actions we want to be the same across all artifact types (`common`).
+* Installing and configuring iLO management software and daemons is something we do not have on any medium except for real hardware (`metal`).
+* A meta file for a Google import should only exist on `google` artifacts.
+* Setting up a `vagrant` user would be specific to the Vagrant artifacts.
+
+For help deciding where something should go, please inquire within the https://app.slack.com/client/T02FUJE3F/ncn-devel[#ncn-devel] Slack channel.
+
 === Necessary Software
 
-* `envsubst` (optional; for base layer builds)
-* qemu
-* libvirt (optional; for vagrant)
-* packer
-* virtualbox (optional; for virtualbox builds)
+[horizontal]
+`gettext-runtime`:: Needed for providing `envsubst` which is used for templating. 
+qemu:: Needed for base image artifacts for Google Compute and Metal, as well as every subsequent layer's metal artifacts.
+libvirt:: Required for Vagrant builds, this is its core provider.
+packer:: Necessary for running anything in this pipeline, `packer` drives the entire repository.
+vagrant:: Necessary for Vagrant builds.
+virtualbox:: Necessary for VirtualBox builds.
+
+[#_plugins]
+==== Plugins
+
+Some plugins are required for Packer as well as Vagrant.
+
+.Packer
+* https://github.com/hashicorp/googlecompute[github.com/hashicorp/googlecompute]
+* https://github.com/hashicorp/qemu[github.com/hashicorp/qemu]
+* https://github.com/hashicorp/vagrant[github.com/hashicorp/vagrant]
++
+[source,bash]
+----
+packer init boxes/ncn-node-images/variables.pkr.hcl
+----
+
+.Vagrant
+* https://github.com/vagrant-libvirt/vagrant-libvirt[vagrant-libvirt]
++
+[source,bash]
+----
+vagrant plugin install vagrant-libvirt
+----
 
 === Media
 
@@ -27,17 +82,28 @@ For any ISO, copy it into the `iso/` directory.
 
 Files that have been tested and verified to work:
 
+These can be downloaded from https://www.suse.com/download/sles/
+
+[sidebar]
+****
+The `.box` files come from OpenBuild Service, since SUSE does not always publish the GM box at suse.com/download/sles.
+
+* SP3 https://download.opensuse.org/repositories/Virtualization:/Appliances:/Images:/SLE-15-SP3/images/
+* SP4 https://download.opensuse.org/repositories/Virtualization:/Appliances:/Images:/SLE-15-SP4/images/
+
+****
+
 * `SLE-15-SP2-Full-x86_64-GM-Media1.iso`
 * `SLE-15-SP3-Full-x86_64-GM-Media1.iso`
 * `SLE-15-SP3-Online-x86_64-GM-Media1.iso`
+* `SLES-15-SP3-Vagrant.x86_64-libvirt.box`
+* `SLES-15-SP4-Vagrant.x86_64-libvirt.box`
 
 === Repositories
 
 You will need access to the appropriate SLES repositories in the form of official access, self-hosted access, or the provided Nexus access.
 
-If you are using the default internal servers then you only need to pass `artifactory_user` and `artifactory_token` as variables with the packer command.
-
-- `-var 'artifactory_user=user' -var 'artifactory_token=token'`
+If you are using the default internal servers then you only need to `export` the username and apitoken into the working environment.
 
 Furthermore, there may be additional repos used that are defined in `csm-rpms` which is checked out in the Quick Start section. You may be required to replace some or all of these files in `csm-rpms/repos/*.repos` to work with your environment.
 
@@ -46,17 +112,15 @@ Furthermore, there may be additional repos used that are defined in `csm-rpms` w
 If you need to adjust the version of `csm-rpms` in your repo, or make changes to the `csm-rpms` code base, you will
 need to install git-vendor, which uses git submodules for managing dependencies.
 
-  * `git vendor list` will show you the managed repos
-  * `git vendor update csm-rpms release/1.2` will checkout the `release/1.2` branch of `csm-rpms`
-  * All code for `csm-rpms` is stored in the `vendor` directory
+* `git vendor list` will show you the managed repos
+* `git vendor update csm-rpms release/1.2` will checkout the `release/1.2` branch of `csm-rpms`
+* All code for `csm-rpms` is stored in the `vendor` directory
 
 Both `csm-rpms` and `metal-provision` are vendored.
 
 == Build Steps
 
 === Setup
-
-
 
 * Install packer
 +
@@ -115,6 +179,7 @@ This requires following the <<_prerequisites>> section.
 
 .Steps for building
 . Download a base to start with, this example downloads a base ISO from CSM's Artifactory.
+* Qemu and VirtualBox require an ISO
 +
 [source,bash]
 ----
@@ -122,17 +187,45 @@ media=SLE-15-SP3-Online-x86_64-GM-Media1.iso
 mkdir iso
 curl -f -o iso/$media https://$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN@artifactory.algol60.net/artifactory/os-images/${media}
 ----
-. Render the `autoinst.xml` and `autoinst-google.xml` files.
+* Vagrant requires a Box
++
+[source,bash]
+----
+media=SLES-15-SP3-Vagrant.x86_64-libvirt.box
+mkdir box
+curl -f -o box/$media https://$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN@artifactory.algol60.net/artifactory/os-boxes/${media}
+----
+. Run `setup.sh`
+.. For Qemu (`sles15-base` or `sles15-google`) or VirtualBox builds, render the `autoinst.xml` and `autoinst-google.xml` files.
 +
 [source,bash]
 ----
 ./scripts/setup.sh
 ----
-. Build.
+.. For Vagrant builds, also run its `setup.sh` (designed for Debian/Ubuntu)
 +
 [source,bash]
 ----
-packer build -only=qemu.sles15-base -var 'ssh_password=$SLES15_INITIAL_ROOT_PASSWORD' boxes/sles15-base
+./scripts/vagrant/setup.sh
+----
+. Build.
+* Qemu
++
+[source,bash]
+----
+packer build -only=qemu.sles15-base boxes/sles15-base
+----
+* Vagrant
++
+[source,bash]
+----
+packer build -only=vagrant.sles15-base boxes/sles15-base
+----
+* VirtualBox
++
+[source,bash]
+----
+packer build -only=virtualbox-iso.sles15-base boxes/sles15-base
 ----
 
 Once the images are built, the `.qcow2` and `.box` files will be placed in the `output-sles15-base` and `output-sles15-base-vagrant` directory, respectively.
@@ -149,8 +242,8 @@ If the <<_base_layer>> section was followed, then this layer can be built as is.
 +
 [source,bash]
 ----
-mkdir output-sles15-base
-curl -f -o output-sles15-base/sles15-base.qcow2 https://$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN@artifactory.algol60.net/artifactory/csm-images/stable/sles15-base/\\[RELEASE\\]/sles15-base-\\[RELEASE\\].qcow2
+mkdir output-sles15-base-qemu
+curl -f -o output-sles15-base-qemu/sles15-base.qcow2 https://$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN@artifactory.algol60.net/artifactory/csm-images/stable/sles15-base/\\[RELEASE\\]/sles15-base-\\[RELEASE\\].qcow2
 ----
 * Vagrant
 +
@@ -167,51 +260,32 @@ VirtualBox is not listed for two reasons; VirtualBox is not published to Artifac
 +
 [source,bash]
 ----
-packer build -only=qemu.ncn-common -var 'ssh_password=$SLES15_INITIAL_ROOT_PASSWORD' boxes/ncn-common
+packer build -only=qemu.ncn-common boxes/ncn-common
+----
+* Vagrant
++
+[source,bash]
+----
+packer build -only=vagrant.ncn-common boxes/ncn-common
 ----
 * VirtualBox
 +
 [source,bash]
 ----
-packer build -only=virtualbox-ovf.ncn-common -var 'ssh_password=$SLES15_INITIAL_ROOT_PASSWORD' boxes/ncn-common
+packer build -only=virtualbox-ovf.ncn-common boxes/ncn-common
 ----
 
 Once the image has built, the `.qcow2` file will be placed in the `output-ncn-common` directory.
 
-==== Pre-Install Toolkit Layer
-
-If the <<_base_layer>> section was followed, then this layer can be built as is. If the base layer is being skipped, then a stable base needs to be downloaded.
-
-.Steps for building
-. Download a stable base if one wasn't created by completing the <<_base_layer>> section.
-+
-* Qemu
-+
-[source,bash]
-----
-mkdir output-sles15-base
-curl -f -o output-sles15-base/sles15-base.qcow2 https://$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN@artifactory.algol60.net/artifactory/csm-images/stable/sles15-base/\\[RELEASE\\]/sles15-base-\\[RELEASE\\].qcow2
-----
-+
-[sidebar]
-VirtualBox is not listed for two reasons; VirtualBox is not published to Artifactory, and VirtualBox uses the `.qcow2` file from qemu.
-. Build.
-* Qemu
-+
-[source,bash]
-----
-packer build -only=qemu.pit-common -var 'ssh_password=$SLES15_INITIAL_ROOT_PASSWORD' boxes/pit-common
-----
-* VirtualBox
-+
-[source,bash]
-----
-packer build -only=virtualbox-ovf.pit-common -var 'ssh_password=$SLES15_INITIAL_ROOT_PASSWORD' boxes/pit-common
-----
-
 ==== Non-Compute Node Image Layer
 
 If the <<_common_layer>> section was followed, then this layer can be built as is. If the common layer is being skipped, then a stable common needs to be downloaded.
+
+This builds a the following NCN artifacts:
+
+* kubernetes
+* pre-install-toolkit
+* storage-ceph
 
 .Steps for building
 . Download a stable common if one wasn't created by completing the <<_common_layer>> section.
@@ -220,37 +294,41 @@ If the <<_common_layer>> section was followed, then this layer can be built as i
 +
 [source,bash]
 ----
-mkdir output-ncn-common
-curl -f -o output-ncn-common-base/ncn-common.qcow2 https://$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN@artifactory.algol60.net/artifactory/csm-images/stable/ncn-common/\\[RELEASE\\]/ncn-common-\\[RELEASE\\].qcow2
+mkdir output-ncn-common-qemu output-ncn-common-vagrant
+curl -f -o output-ncn-common-base-qemu/ncn-common.qcow2 https://$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN@artifactory.algol60.net/artifactory/csm-images/stable/ncn-common/\\[RELEASE\\]/ncn-common-\\[RELEASE\\].qcow2
+curl -f -o output-ncn-common-base-vagrant/ncn-common.box https://$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN@artifactory.algol60.net/artifactory/csm-images/stable/ncn-common/\\[RELEASE\\]/ncn-common-\\[RELEASE\\].box
 ----
 . Build.
 * Qemu
 +
 [source,bash]
 ----
-packer build -only=qemu.* -var 'ssh_password=$SLES15_INITIAL_ROOT_PASSWORD' boxes/ncn-node-images
+packer build -only=qemu.* boxes/ncn-node-images
+----
+* Vagrant
++
+[source,bash]
+----
+packer build -only=vagrant.* boxes/ncn-node-images`
 ----
 * VirtualBox
 +
 [source,bash]
 ----
-packer build -only=virtualbox-ovf.* -var 'ssh_password=$SLES15_INITIAL_ROOT_PASSWORD' boxes/ncn-node-images`
+packer build -only=virtualbox-ovf.* boxes/ncn-node-images`
 ----
 
 Once the images has built, the `.qcow2` file will be placed in the `output-ncn-node-images` directory.
 
 === Artifacts
 
-Each layer creates a product, and each product is created in various formats. These formats cater to certain contexts.
+The artifacts produced by this pipeline are available from several locations.
 
-.Artifact Types
-- Google artifacts (published directly to Google Cloud)
-- Metal artifacts (only produced by the last layer, `ncn-node-images`, and published to Artifactory)
-- VirtualBox artifacts (not built by any automation nor published anywhere)
+==== Google Cloud
 
-Each type is the _same_ with some exceptions.
+If you have access to Google Cloud, the artifacts can be found https://console.cloud.google.com/compute/images?project=artifactory-202004&authuser=3&imagesquery=%255B%257B_22k_22_3A_22_22_2C_22t_22_3A10_2C_22v_22_3A_22_5C_22vshasta_5C_22_22%257D%255D[here].
 
-==== Latest Artifacts
+==== Artifactory
 
 The latest artifacts can be fetched by the following commands.
 
@@ -258,10 +336,27 @@ The latest artifacts can be fetched by the following commands.
 +
 [source,bash]
 ----
-ARTIFACTORY_USER=<username>
-ARTFACTORY_TOKEN=<api token>
+export ARTIFACTORY_USER=<username>
+export ARTFACTORY_TOKEN=<api token>
 ----
 . Download the Artifacts
++
+[sidebar]
+The `[RELEASE]` in the URLs below may look like placeholders when they are not. An artifact may be downloaded
+by referring to its literal version, or if `[RELEASE]` is provided then the latest artifact is downloaded. The
+commands below all download the _latest_ artifacts.
++
+* Boxes
++
+[source,bash]
+----
+curl -f -o sles15-base.box https://$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN@artifactory.algol60.net/artifactory/csm-images/stable/sles15-base/\\[RELEASE\\]/sles15-base-\\[RELEASE\\].box
+curl -f -o ncn-common.box https://$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN@artifactory.algol60.net/artifactory/csm-images/stable/ncn-common/\\[RELEASE\\]/ncn-common-\\[RELEASE\\].box
+curl -f -o pre-install-toolkit.box https://$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN@artifactory.algol60.net/artifactory/csm-images/stable/pre-install-toolkit/\\[RELEASE\\]/pre-install-toolkit-\\[RELEASE\\].box
+curl -f -o kubernetes.box https://$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN@artifactory.algol60.net/artifactory/csm-images/stable/kubernetes/\\[RELEASE\\]/kubernetes-\\[RELEASE\\].box
+curl -f -o storage-ceph.box https://$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN@artifactory.algol60.net/artifactory/csm-images/stable/storage-ceph/\\[RELEASE\\]/storage-ceph-\\[RELEASE\\].box
+----
+* QCOWs
 +
 [source,bash]
 ----
@@ -270,6 +365,38 @@ curl -f -o ncn-common.qcow2 https://$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN@artifac
 curl -f -o pre-install-toolkit.qcow2 https://$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN@artifactory.algol60.net/artifactory/csm-images/stable/pre-install-toolkit/\\[RELEASE\\]/pre-install-toolkit-\\[RELEASE\\].qcow2
 curl -f -o kubernetes.qcow2 https://$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN@artifactory.algol60.net/artifactory/csm-images/stable/kubernetes/\\[RELEASE\\]/kubernetes-\\[RELEASE\\].qcow2
 curl -f -o storage-ceph.qcow2 https://$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN@artifactory.algol60.net/artifactory/csm-images/stable/storage-ceph/\\[RELEASE\\]/storage-ceph-\\[RELEASE\\].qcow2
+----
+* SquashFS
++
+[source,bash]
+----
+curl -f -o kubernetes.qcow2 https://$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN@artifactory.algol60.net/artifactory/csm-images/stable/kubernetes/\\[RELEASE\\]/kubernetes-\\[RELEASE\\].squashfs
+curl -f -o storage-ceph.qcow2 https://$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN@artifactory.algol60.net/artifactory/csm-images/stable/storage-ceph/\\[RELEASE\\]/storage-ceph-\\[RELEASE\\].squashfs
+----
+
+==== Running Vagrant Boxes
+
+After setting up `vagrant`, `libvirt` on your local machine, as well as the necessary <<_plugins>>, running a box is easy.
+
+. Add the box of your choice (_the examples below use the `kubernetes` Vagrant box_).
++
+[source,bash]
+----
+curl -f -o kubernetes.box https://$ARTIFACTORY_USER:$ARTIFACTORY_TOKEN@artifactory.algol60.net/artifactory/csm-images/stable/kubernetes/\\[RELEASE\\]/kubernetes-\\[RELEASE\\].box
+----
+. Add and initialize the box to make a `Vagrantfile.`
++
+[source,bash]
+----
+vagrant box add --name kubernetes --provider libvirt ./kubernetes.box
+vagrant init kubernetes
+----
+. Then "up" the box (or edit the `Vagrantfile` to your liking; create multiple VMs, or customize the hardware).
++
+[source,bash]
+----
+vagrant up --provider libvirt
+vagrant ssh
 ----
 
 === Versioning
