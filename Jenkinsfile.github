@@ -208,9 +208,9 @@ pipeline {
                                 sh "vagrant box add --name ${baseBox} --provider ${vagrantProvider} box/${env.BOX}"
                                 def arguments = "-except=virtualbox-iso.* -var 'source_iso_uri=iso/${env.ISO}' -var 'source_box_uri=box/${env.BOX}' -var 'cpus=${NPROC}' -var 'memory=${NRAM}' -var 'artifact_version=${VERSION}'"
                                 publishCsmImages.build(arguments, 'boxes/sles15-base/')
-                                publishCsmImages.prepareArtifacts(artifactoryRepo: IMAGE_REPO, "${env.ARTIFACTS_DIRECTORY_BASE}-qemu", VERSION)
-                                publishCsmImages.prepareArtifacts(artifactoryRepo: IMAGE_REPO, "${env.ARTIFACTS_DIRECTORY_BASE}-google", VERSION)
-                                publishCsmImages.prepareArtifacts(artifactoryRepo: IMAGE_REPO, "${env.ARTIFACTS_DIRECTORY_BASE}-vagrant", VERSION)
+                                publishCsmImages.prepareArtifacts(artifactoryRepo: "${env.IMAGE_REPO}", "${env.ARTIFACTS_DIRECTORY_BASE}-qemu", VERSION)
+                                publishCsmImages.prepareArtifacts(artifactoryRepo: "${env.IMAGE_REPO}", "${env.ARTIFACTS_DIRECTORY_BASE}-google", VERSION)
+                                publishCsmImages.prepareArtifacts(artifactoryRepo: "${env.IMAGE_REPO}", "${env.ARTIFACTS_DIRECTORY_BASE}-vagrant", VERSION)
 
                                 def props = "build.number=${env.VERSION};build.url=${env.BUILD_URL};vcs.revision-short=${GIT_COMMIT[0..6]};build.source-artifact=${env.ISO_URL}/${env.ISO}"
                                 publishCsmImages(pattern: "${env.ARTIFACTS_DIRECTORY_BASE}-qemu", imageName: 'sles15-base', version: env.VERSION, props: props)
