@@ -146,7 +146,7 @@ build {
     inline          = [
       "mkdir -pv /etc/ansible /srv/cray",
       "cp -pv /tmp/ansible.cfg /etc/ansible/",
-      "cp -rpv /tmp/csm-rpms /srv/cray/"
+      "cp -rpv /tmp/csm-rpms /srv/cray/",
       "cp -rpv /tmp/files /srv/cray/"
     ]
   }
