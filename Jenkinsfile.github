@@ -23,25 +23,51 @@
  *  OTHER DEALINGS IN THE SOFTWARE.
  *
  */
-@Library('csm-shared-library') _
+@Library('csm-shared-library@main') _
+
+/* General Notes
+
+    The general flows of this Jenkinsfile are as follows:
+    - If not building on a tag, all the images are built except for the base image to save time.
+    - If not building on a tag, the common image and its derivatives must build.
+    - If not building on a tag, a google and metal image must be built and published together.
+    - If building on a tag, nothing is built; building on a tag should promote the current HASH of the branch to a pre-release or release (depending on the tag).
+
+    NOTE: Until the PIT Common layer produces an ISO it is skipped, it takes time to build and isn't used at all in its current form.
+ */
 
 // Release toggles; define stable, and when to rebuild from a stable branch.
 def promotionToken = ~"(master|main|develop|lts\\/.*)"
 def buildAndPublish = env.TAG_NAME == null && !(env.BRANCH_NAME ==~ promotionToken) ? true : false
 def sourceBuildVersion = '[RELEASE]' // Pulls the latest release
 
-// Rebuild toggles; never build base unless explicitly required, always rebuild application.
-def rebuildBaseImage = env.TAG_NAME == null ? true : false
-def rebuildApplicationImage = env.TAG_NAME == null ? true : false
-def buildGoogle = false
+// Rebuild toggles; never build base or common unless explicitly enabled by a parameter.
+def rebuildBaseLayers = env.BRANCH_NAME ==~ "lts\\/.*" ? true : false
+def rebuildApplicationLayers = env.BRANCH_NAME ==~ "lts\\/.*" ? true : false
+def prune = false
 
 // Disable pr-merge builds; node-image pipeline doesn't use the PR images at all.
-if ( env.BRANCH_NAME ==~ ~"^PR-\\d+" ) {
+if (env.BRANCH_NAME ==~ ~"^PR-\\d+") {
     currentBuild.result = 'SUCCESS'
     echo "Pull-Requests are not built for node-image-build; this is a no-op build."
     return
 }
 
+
+def slesVersion = '15.3'
+def googleProjectID = 'artifactory-202004'
+def slesVersionParts = slesVersion.tokenize('.')
+def baseBox = "SLES-${slesVersionParts[0]}-SP${slesVersionParts[1]}"
+def baseISO = "SLE-${slesVersionParts[0]}-SP${slesVersionParts[1]}"
+def vagrantProvider = 'libvirt'
+def artifactoryURL = 'https://artifactory.algol60.net/artifactory'
+def googleURL = "https://www.googleapis.com/compute/beta/projects/${googleProjectID}/global/images"
+
+def base
+def googleSourceImageFamily
+def googleSourceImageName
+def sourceArtifact
+def source
 pipeline {
     agent {
         label "metal-gcp-builder-large"
@@ -56,125 +82,231 @@ pipeline {
     environment {
         ARTIFACTS_DIRECTORY_BASE = "output-sles15-base"
         ARTIFACTS_DIRECTORY_APPLICATION = "output-application"
-	NODE_IMAGE_BUILD="vendor/github.com/Cray-HPE/node-images"
-        ISO = "SLE-15-SP3-Online-x86_64-GM-Media1.iso"
-        ISO_URL = "https://artifactory.algol60.net/artifactory/os-images"
-        IMAGE_REPO = "user-uan-images"
+        BASE_BOX = "${baseBox}"
+        BASE_ISO = "${baseISO}"
+        BOX = "${baseBox}-Vagrant.x86_64-libvirt.box"
+        ISO = "${baseISO}-Online-x86_64-GM-Media1.iso"
+        BOX_URL = "${artifactoryURL}/os-boxes"
+        ISO_URL = "${artifactoryURL}/os-images"
         NPROC = sh(returnStdout: true, script: "nproc").trim()
         NRAM = '8196'
-        STABLE_BASE = "https://artifactory.algol60.net/artifactory/user-uan-images/stable"
+        SLES_VERSION = "${slesVersion}"
+        STABLE_BASE = "${artifactoryURL}/user-uan-images/stable"
         VERSION = setImageVersion(commitHashShort: GIT_COMMIT[0..6])
+
+	NODE_IMAGE_BUILD="vendor/github.com/Cray-HPE/node-images"
         SKIP_GCP_UPLOAD = "yes"
+        IMAGE_REPO = "user-uan-images"
     }
 
     parameters {
-        booleanParam(name: 'buildAndPublish', defaultValue: buildAndPublish, description: '(leave unchecked for; git-tags, main, and develop) Whether or not to actually rebuild and publish for a stable merge build job.')
-        booleanParam(name: 'rebuildBaseImage', defaultValue: rebuildBaseImage, description: '(leave unchecked for; git-tags, main, and develop) Whether or not to build the base image; unchecked will pull latest STABLE base. (This overrides rebuildApplicationImage; if this is true, rebuildApplicationImage is bypassed.)')
-        booleanParam(name: 'buildGoogle', defaultValue: buildGoogle, description: '(leave unchecked for; git-tags, main, and develop) Whether or not to build Google images for vshasta.)')
-        booleanParam(name: 'rebuildApplicationImage', defaultValue: rebuildBaseImage, description: '(leave unchecked for; git-tags, main, and develop) Whether or not to build the application image; unchecked will pull latest STABLE application.')
-        string(name: 'sourceProjectId', defaultValue: "artifactory-202004", description: 'The source Project ID for pulling Google images.')
+        booleanParam(name: 'buildAndPublish', defaultValue: buildAndPublish, description: 'Whether to actually build an image (this should be unchecked for git-tags, main, and lts/* builds unless a full rebuild is desired of that branch).')
+        booleanParam(name: 'rebuildBaseLayers', defaultValue: rebuildBaseLayers, description: 'If enabled, the base layer will rebuild (this inherently will rebuild the application layer as well regardless if rebuildApplicationLayer is unchecked.')
+        booleanParam(name: 'rebuildApplicationLayers', defaultValue: rebuildApplicationLayers, description: 'If enabled, the application layer will rebuild.')
+        booleanParam(name: 'prune', defaultValue: prune, description: 'Whether or not to prune all images older than the latest release timestamp.')
+        string(name: 'googleSourceImageProjectId', defaultValue: "artifactory-202004", description: 'The source Project ID for pulling Google images.')
+    }
+
+    triggers {
+        parameterizedCron(env.BRANCH_NAME == 'main' ? '''
+            # 6am UTC / midnight CT
+            0 6 * * * %prune=true
+        ''' : '')
     }
 
     stages {
-
         stage('Setup') {
+            when {
+                expression { !params.prune }
+            }
             parallel {
                 stage('autoinst.xml') {
                     when {
                         expression { env.TAG_NAME == null && (!(env.BRANCH_NAME ==~ promotionToken) || (env.BRANCH_NAME ==~ promotionToken && params.buildAndPublish)) }
-                        expression { params.rebuildBaseImage }
+                        expression { params.rebuildBaseLayers }
                     }
                     steps {
                         withCredentials([
-                                string(credentialsId: 'sles15-initial-root-password', variable: 'SLES15_INITIAL_ROOT_PASSWORD'),
                                 string(credentialsId: 'sles15-registration-code', variable: 'SLES15_REGISTRATION_CODE'),
+                                string(credentialsId: 'sles15-initial-root-password', variable: 'SLES15_INITIAL_ROOT_PASSWORD')
                         ]) {
-                            sh '''
-                                ./${NODE_IMAGE_BUILD}/scripts/setup.sh
-                            '''
+                            script {
+                                dir(env.NODE_IMAGE_BUILD) {
+                                    sh './scripts/setup.sh'
+                                }
+                            }
+                        }
+                    }
+                }
+                stage('Fetch Box') {
+                    when {
+                        expression { env.TAG_NAME == null && (!(env.BRANCH_NAME ==~ promotionToken) || (env.BRANCH_NAME ==~ promotionToken && params.buildAndPublish)) }
+                        expression { params.rebuildBaseLayers }
+                    }
+                    steps {
+                        script {
+                            dir(env.NODE_IMAGE_BUILD+'/box') {
+                                httpRequest(authentication: 'artifactory-algol60', outputFile: "${env.BOX}", responseHandle: 'NONE', url: "${env.BOX_URL}/${env.BOX}")
+                            }
                         }
                     }
                 }
                 stage('Fetch ISO') {
                     when {
                         expression { env.TAG_NAME == null && (!(env.BRANCH_NAME ==~ promotionToken) || (env.BRANCH_NAME ==~ promotionToken && params.buildAndPublish)) }
-                        expression { params.rebuildBaseImage }
+                        expression { params.rebuildBaseLayers }
                     }
                     steps {
                         script {
                             dir(env.NODE_IMAGE_BUILD+'/iso') {
-                                script {
-                                    httpRequest(authentication: 'artifactory-algol60', outputFile: "${ISO}", responseHandle: 'NONE', url: "${env.ISO_URL}/${env.ISO}")
-                                }
+                                httpRequest(authentication: 'artifactory-algol60', outputFile: "${env.ISO}", responseHandle: 'NONE', url: "${env.ISO_URL}/${env.ISO}")
+                            }
+                        }
+                    }
+                }
+                stage('Packer Plugins') {
+                    when {
+                        expression { env.TAG_NAME == null && (!(env.BRANCH_NAME ==~ promotionToken) || (env.BRANCH_NAME ==~ promotionToken && params.buildAndPublish)) }
+                    }
+                    steps {
+                        script {
+                            dir(env.NODE_IMAGE_BUILD) {
+                                sh 'packer init boxes/ncn-node-images/variables.pkr.hcl'
+                            }
+                        }
+                    }
+                }
+                stage('Vagrantfile') {
+                    when {
+                        expression { env.TAG_NAME == null && (!(env.BRANCH_NAME ==~ promotionToken) || (env.BRANCH_NAME ==~ promotionToken && params.buildAndPublish)) }
+                    }
+                    steps {
+                        script {
+                            dir(env.NODE_IMAGE_BUILD) {
+                                sh './scripts/vagrant/setup.sh'
                             }
                         }
                     }
                 }
             }
         }
-
-        stage('Base Layers') {
+        stage('Base Layer(s)') {
             when {
-                expression { env.TAG_NAME == null && (!(BRANCH_NAME ==~ promotionToken) || (BRANCH_NAME ==~ promotionToken && params.buildAndPublish)) }
-                expression { params.rebuildBaseImage }
+                expression { env.TAG_NAME == null && (!(env.BRANCH_NAME ==~ promotionToken) || (env.BRANCH_NAME ==~ promotionToken && params.buildAndPublish)) }
+                expression { params.rebuildBaseLayers }
+                expression { !params.prune }
             }
             steps {
                 dir(env.NODE_IMAGE_BUILD) {
                     withCredentials([
-                        string(credentialsId: 'sles15-initial-root-password', variable: 'SLES15_INITIAL_ROOT_PASSWORD')
-                            ]) {
+                        file(credentialsId: 'google-image-manager', variable: 'GOOGLE_CLOUD_SA_KEY'),
+                        string(credentialsId: 'sles15-initial-root-password', variable: 'SLES15_INITIAL_ROOT_PASSWORD'),
+                        string(credentialsId: 'sles15-registration-code', variable: 'SLES15_REGISTRATION_CODE'),
+                        usernamePassword(credentialsId: 'artifactory-algol60', usernameVariable: 'ARTIFACTORY_USER', passwordVariable: 'ARTIFACTORY_TOKEN')
+                        ]) {
                             script {
-                                def arguments
-                                arguments = "-only=qemu.sles15-base -var 'source_iso_uri=iso/${env.ISO}' -var 'ssh_password=${SLES15_INITIAL_ROOT_PASSWORD}' -var 'cpus=${NPROC}' -var 'memory=${NRAM}' -var 'artifact_version=${VERSION}'"
+                                sh "vagrant box add --name ${baseBox} --provider ${vagrantProvider} box/${env.BOX}"
+                                def arguments = "-except=virtualbox-iso.* -var 'source_iso_uri=iso/${env.ISO}' -var 'source_box_uri=box/${env.BOX}' -var 'cpus=${NPROC}' -var 'memory=${NRAM}' -var 'artifact_version=${VERSION}'"
                                 publishCsmImages.build(arguments, 'boxes/sles15-base/')
-                                publishCsmImages.prepareArtifacts(ARTIFACTS_DIRECTORY_BASE, VERSION)
-                                props = "build.number=${env.VERSION};build.url=${env.BUILD_URL};vcs.revision-short=${GIT_COMMIT[0..6]};build.source-artifact=${env.ISO_URL}/${env.ISO}"
-                                publishCsmImages(artifactoryRepo: IMAGE_REPO, pattern: ARTIFACTS_DIRECTORY_BASE, imageName: 'sles15-base', version: env.VERSION, props: props)
+                                publishCsmImages.prepareArtifacts(artifactoryRepo: IMAGE_REPO, "${env.ARTIFACTS_DIRECTORY_BASE}-qemu", VERSION)
+                                publishCsmImages.prepareArtifacts(artifactoryRepo: IMAGE_REPO, "${env.ARTIFACTS_DIRECTORY_BASE}-google", VERSION)
+                                publishCsmImages.prepareArtifacts(artifactoryRepo: IMAGE_REPO, "${env.ARTIFACTS_DIRECTORY_BASE}-vagrant", VERSION)
+
+                                def props = "build.number=${env.VERSION};build.url=${env.BUILD_URL};vcs.revision-short=${GIT_COMMIT[0..6]};build.source-artifact=${env.ISO_URL}/${env.ISO}"
+                                publishCsmImages(pattern: "${env.ARTIFACTS_DIRECTORY_BASE}-qemu", imageName: 'sles15-base', version: env.VERSION, props: props)
+                                props = "${props};box_name=sles15-base;box_provider=${vagrantProvider};box_version=${VERSION}"
+                                publishCsmImages(pattern: "${ARTIFACTS_DIRECTORY_BASE}-vagrant", imageName: 'sles15-base', version: env.VERSION, props: props)
+                                sh './scripts/google/import.sh'
                         }
                     }
                 }
             }
         }
 
-        stage('Application Layers') {
+        stage('Application Layer(s)') {
             when {
                 expression { env.TAG_NAME == null && (!(BRANCH_NAME ==~ promotionToken) || (BRANCH_NAME ==~ promotionToken && params.buildAndPublish)) }
-                expression { params.rebuildApplicationImage }
+                expression { params.rebuildApplicationLayers }
+                expression { !params.prune }
             }
-            parallel {
-                stage('Build Application') {
-                    when {
-                        expression { params.rebuildApplicationImage }
-                    }
+            stages {
+                stage('Fetch Latest Artifacts') {
                     steps {
-                        withCredentials([
-                                string(credentialsId: 'sles15-initial-root-password', variable: 'SLES15_INITIAL_ROOT_PASSWORD'),
-                                usernamePassword(credentialsId: 'artifactory-algol60', usernameVariable: 'ARTIFACTORY_USER', passwordVariable: 'ARTIFACTORY_TOKEN'),
-                        ]) {
-                            script {
+                        script {
+                            base = "sles15-base"
+                            googleSourceImageFamily = "vshasta-${base}"
 
-                                def base = "sles15-base"
-                                def sourceImage = "${base}-${VERSION}"
-                                def arguments
-                                def props
-                                def source = "${NODE_IMAGE_BUILD}/${ARTIFACTS_DIRECTORY_BASE}/${sourceImage}"
+                            // If the previous layer wasn't built in this job, resolve the artifacts.
+                            if (!params.rebuildBaseLayers) {
 
-                                if (!params.rebuildBaseImage) {
+                                // If we're not pulling the latest artifact, resolve the necessary IDs.
+                                if (sourceBuildVersion != "[RELEASE]") {
+                                    source = nodeImageHelpers.getArtifactorySourceArtifactFromId(source, sourceBuildVersion)
+                                    sourceArtifact = "${base}-${sourceBuildVersion}"
+                                    googleSourceImageName = nodeImageHelpers.getGoogleCloudSourceArtifactFromId(googleSourceImageFamily, sourceBuildVersion)
+
+                                    // If we are pulling the latest artifact, resolve the necessary IDs.
+                                } else {
                                     source = "${STABLE_BASE}/${base}/${java.net.URLEncoder.encode("${sourceBuildVersion}", "UTF-8")}/${base}-${java.net.URLEncoder.encode("${sourceBuildVersion}", "UTF-8")}"
-                                    if (sourceBuildVersion != "[RELEASE]") {
-                                        source = nodeImageHelpers.getArtifactorySourceArtifactFromId(source, sourceBuildVersion)
-                                    }
-                                    dir("${env.NODE_IMAGE_BUILD}/${env.ARTIFACTS_DIRECTORY_BASE}") {
-                                        httpRequest(authentication: 'artifactory-algol60', outputFile: "${sourceImage}.qcow2", responseHandle: 'NONE', url: "${source}.qcow2")
+                                    response = httpRequest(authentication: 'artifactory-algol60', url: "${artifactoryURL}/api/search/latestVersion?g=stable&a=${base}")
+                                    sourceArtifactVersion = response.content
+                                    sourceArtifact = "${base}-${sourceArtifactVersion}"
+                                    googleSourceImageName = "vshasta-${base}-${sourceArtifactVersion.replaceAll("\\.", "-")}"
+                                }
+                                dir("${env.NODE_IMAGE_BUILD}/${env.ARTIFACTS_DIRECTORY_BASE}-qemu") {
+                                    httpRequest(authentication: 'artifactory-algol60', outputFile: "${sourceArtifact}.qcow2", responseHandle: 'NONE', url: "${source}.qcow2")
+                                }
+                                dir("${env.NODE_IMAGE_BUILD}/${env.ARTIFACTS_DIRECTORY_BASE}-vagrant") {
+                                    httpRequest(authentication: 'artifactory-algol60', outputFile: "${sourceArtifact}.box", responseHandle: 'NONE', url: "${source}.box")
+
+                                    // To support parallel builds at any layer, the downloaded box needs to be uploaded into libvirt, into a volume with the same name that vagrant-libvirt expects.
+                                    sh "vagrant box add --name ${base} --provider ${vagrantProvider} ${sourceArtifact}.box"
+                                    env.mtime = sh(returnStdout: true, script: "stat -c %Y ~/.vagrant.d/boxes/${base}/0/${vagrantProvider}/box.img").trim()
+                                    env.name = "${base}_vagrant_box_image_0_${env.mtime}_box.img"
+                                    env.libvirt_uid = sh(returnStdout: true, script: "id -u libvirt-qemu")
+                                    env.libvirt_gid = sh(returnStdout: true, script: "getent group libvirt-qemu | awk -F : '{print \$3}'")
+                                    env.allocation = sh(returnStdout: true, script: "stat -c %s ~/.vagrant.d/boxes/${base}/0/${vagrantProvider}/box.img").trim()
+                                    env.capacity = sh(returnStdout: true, script: "cat ~/.vagrant.d/boxes/${base}/0/${vagrantProvider}/metadata.json | jq .virtual_size | awk \'{print \$1*1024*1024*1024}\'").trim()
+                                    sh 'envsubst < ../scripts/vagrant/volume.template.xml > ./volume.xml'
+                                    sh 'sudo virsh vol-create default ./volume.xml'
+                                    sh "sudo virsh vol-dumpxml ${env.name} default"
+                                    sh "sudo virsh vol-upload ${env.name} ~/.vagrant.d/boxes/${base}/0/${vagrantProvider}/box.img --pool default"
+                                }
+                            } else {
+
+                                // If the previous layer was built, then use that local artifact.
+                                sourceArtifact = "${base}-${VERSION}"
+                                googleSourceImageName = "vshasta-${base}-${VERSION}"
+                            }
+                            googleSourceArtifact = "${googleURL}/${googleSourceImageName}"
+                        }
+                    }
+                }
+
+                stage('Build & Publish') {
+                    parallel {
+                        stage('Application') {
+                            when {
+                                expression { params.rebuildBaseLayers || params.rebuildApplicationLayers }
+                            }
+                            steps {
+                                withCredentials([
+                                        file(credentialsId: 'google-image-manager', variable: 'GOOGLE_CLOUD_SA_KEY'),
+                                        file(credentialsId: 'google-image-manager', variable: 'GOOGLE_APPLICATION_CREDENTIALS'),
+                                        string(credentialsId: 'sles15-initial-root-password', variable: 'SLES15_INITIAL_ROOT_PASSWORD'),
+                                        usernamePassword(credentialsId: 'artifactory-algol60', usernameVariable: 'ARTIFACTORY_USER', passwordVariable: 'ARTIFACTORY_TOKEN')
+                                ]) {
+                                    script {
+                                        def arguments = "-except=virtualbox-ovf.* -only='*.application' -var 'source_box_uri=${env.ARTIFACT_DIRECTORY_BASE}/${env.ARTIFACTS_DIRECTORY_BASE}-vagrant/${sourceArtifact}.box' -var 'google_source_image_name=${googleSourceImageName}' -var 'google_source_image_url=${googleSourceArtifact}' -var 'build_url=${env.BUILD_URL}' -var 'source_iso_uri=${env.ARTIFACTS_DIRECTORY_BASE}-qemu/${sourceArtifact}.qcow2' -var 'cpus=${NPROC}' -var 'memory=${NRAM}' -var 'artifact_version=${VERSION}'"
+                                        publishCsmImages.build(arguments, 'boxes/application/')
+                                        publishCsmImages.prepareArtifacts("${ARTIFACTS_DIRECTORY_COMMON}-qemu", VERSION)
+                                        publishCsmImages.prepareArtifacts("${ARTIFACTS_DIRECTORY_COMMON}-vagrant", VERSION)
+                                        def props = "build.number=${env.VERSION};build.url=${env.BUILD_URL};vcs.revision-short=${GIT_COMMIT[0..6]};build.source-artifact=${sourceArtifact}"
+                                        publishCsmImages(pattern: "${ARTIFACTS_DIRECTORY_COMMON}-qemu", imageName: 'application', version: env.VERSION, props: props)
+                                        props = "${props};box_name=ncn-common;box_provider=${vagrantProvider};box_version=${VERSION}"
+                                        publishCsmImages(pattern: "${ARTIFACTS_DIRECTORY_COMMON}-vagrant", imageName: 'application', version: env.VERSION, props: props)
                                     }
                                 }
-
-                                arguments = "-only=qemu.application -var 'source_iso_uri=${env.NODE_IMAGE_BUILD}/${env.ARTIFACTS_DIRECTORY_BASE}/${sourceImage}.qcow2' -var 'ssh_password=${SLES15_INITIAL_ROOT_PASSWORD}' -var 'artifactory_user=${ARTIFACTORY_USER}' -var 'artifactory_token=${ARTIFACTORY_TOKEN}' -var 'cpus=${NPROC}' -var 'memory=${NRAM}' -var 'artifact_version=${VERSION}'"
-                                publishCsmImages.build(arguments, 'boxes/application/')
-                                publishCsmImages.prepareArtifacts(ARTIFACTS_DIRECTORY_APPLICATION, VERSION)
-
-                                props = "build.number=${env.VERSION};build.url=${env.BUILD_URL};vcs.revision-short=${GIT_COMMIT[0..6]};build.source-artifact=${source}"
-                                publishCsmImages(artifactoryRepo: IMAGE_REPO, pattern: ARTIFACTS_DIRECTORY_APPLICATION, imageName: 'application', version: env.VERSION, props: props)
                             }
                         }
                     }
@@ -186,8 +318,8 @@ pipeline {
             when { tag "*" }
             steps {
                 withCredentials([
-                        usernamePassword(credentialsId: 'artifactory-algol60-publish', usernameVariable: 'ARTIFACTORY_USER', passwordVariable: 'ARTIFACTORY_TOKEN'),
-                        file(credentialsId: 'google-image-manager', variable: 'GOOGLE_CLOUD_SA_KEY')
+                        file(credentialsId: 'google-image-manager', variable: 'GOOGLE_CLOUD_SA_KEY'),
+                        usernamePassword(credentialsId: 'artifactory-algol60-publish', usernameVariable: 'ARTIFACTORY_USER', passwordVariable: 'ARTIFACTORY_TOKEN')
                 ]) {
                     script {
                         /*
@@ -200,7 +332,28 @@ pipeline {
                             echo err.getMessage()
                             echo 'The build attempted to publish a sles15-base image but none was found, this may or may not be expected.'
                         }
-                        publishCsmImages.release('application', GIT_COMMIT[0..6], env.TAG_NAME, GOOGLE_CLOUD_SA_KEY)
+                        try {
+                            publishCsmImages.release('application', GIT_COMMIT[0..6], env.TAG_NAME, GOOGLE_CLOUD_SA_KEY)
+                        } catch (err) {
+                            echo err.getMessage()
+                            echo 'The build attempted to publish an application image but none was found, this may or may not be expected.'
+                        }
+                    }
+                }
+            }
+        }
+        stage('Prune') {
+            when {
+                expression { params.prune }
+                expression { !params.buildAndPublish }
+            }
+            steps {
+                withCredentials([
+                        usernamePassword(credentialsId: 'artifactory-algol60-publish', usernameVariable: 'ARTIFACTORY_USER', passwordVariable: 'ARTIFACTORY_TOKEN'),
+                        file(credentialsId: 'google-image-manager', variable: 'GOOGLE_CLOUD_SA_KEY')
+                ]) {
+                    script {
+                        nodeImageHelpers.doPrune(GOOGLE_CLOUD_SA_KEY, ARTIFACTORY_USER, ARTIFACTORY_TOKEN)
                     }
                 }
             }
