@@ -81,7 +81,7 @@ source "vagrant" "application" {
   provider     = "${var.vagrant_provider}"
   skip_add     = true
   source_path  = "${var.source_box_uri}"
-  template     = "./scripts/vagrant/Vagrantfile"
+  template     = "${var.vendor_path}/scripts/vagrant/Vagrantfile"
 }
 
 # Not built by CI/CD; local-build-only.
