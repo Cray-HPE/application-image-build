@@ -297,7 +297,7 @@ pipeline {
                                         usernamePassword(credentialsId: 'artifactory-algol60', usernameVariable: 'ARTIFACTORY_USER', passwordVariable: 'ARTIFACTORY_TOKEN')
                                 ]) {
                                     script {
-                                        def arguments = "-except=virtualbox-ovf.* -only='*.application' -var 'source_box_uri=${env.ARTIFACT_DIRECTORY_BASE}/${env.ARTIFACTS_DIRECTORY_BASE}-vagrant/${sourceArtifact}.box' -var 'google_source_image_name=${googleSourceImageName}' -var 'google_source_image_url=${googleSourceArtifact}' -var 'build_url=${env.BUILD_URL}' -var 'source_iso_uri=${env.ARTIFACT_DIRECTORY_BASE}/${env.ARTIFACTS_DIRECTORY_BASE}-qemu/${sourceArtifact}.qcow2' -var 'cpus=${NPROC}' -var 'memory=${NRAM}' -var 'artifact_version=${VERSION}'"
+                                        def arguments = "-except=virtualbox-ovf.* -only='*.application' -var 'source_box_uri=${env.NODE_IMAGE_BUILD}/${env.ARTIFACTS_DIRECTORY_BASE}-vagrant/${sourceArtifact}.box' -var 'google_source_image_name=${googleSourceImageName}' -var 'google_source_image_url=${googleSourceArtifact}' -var 'build_url=${env.BUILD_URL}' -var 'source_iso_uri=${env.NODE_IMAGE_BUILD}/${env.ARTIFACTS_DIRECTORY_BASE}-qemu/${sourceArtifact}.qcow2' -var 'cpus=${NPROC}' -var 'memory=${NRAM}' -var 'artifact_version=${VERSION}'"
                                         publishCsmImages.build(arguments, 'boxes/application/')
                                         publishCsmImages.prepareArtifacts("${ARTIFACTS_DIRECTORY_COMMON}-qemu", VERSION)
                                         publishCsmImages.prepareArtifacts("${ARTIFACTS_DIRECTORY_COMMON}-vagrant", VERSION)
