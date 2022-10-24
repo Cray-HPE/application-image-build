@@ -417,22 +417,23 @@ build {
       only = ["vagrant.application"]
     }
 
-    post-processor "shell-local" {
-      # Create a volume for the next layer to auto-resolve, preventing race conditions during parallel builds.
-      inline = [
-        "vagrant box add --name ${source.name} --provider ${var.vagrant_provider} ${var.output_directory}-${source.type}/${var.image_name}.box",
-        "echo export name=\"${source.name}_vagrant_box_image_0_$(stat -c %Y ~/.vagrant.d/boxes/${source.name}/0/${var.vagrant_provider}/box.img )_box.img\" > ./scripts/vagrant/.variables",
-        "echo export libvirt_uid=\"$(id -u libvirt-qemu)\" >> ./scripts/vagrant/.variables",
-        "echo export libvirt_gid=\"$(getent group libvirt-qemu | awk -F : '{print $3}')\" >> ./scripts/vagrant/.variables",
-        "echo export allocation=\"$(stat -c %s ~/.vagrant.d/boxes/${source.name}/0/${var.vagrant_provider}/box.img)\" >> ./scripts/vagrant/.variables",
-        "echo export capacity=\"$(cat ~/.vagrant.d/boxes/${source.name}/0/${var.vagrant_provider}/metadata.json | jq .virtual_size | awk '{print $1*1024*1024*1024}')\" >> ./scripts/vagrant/.variables",
-        "cat ./scripts/vagrant/.variables",
-        "bash -c '. ./scripts/vagrant/.variables; envsubst < ./scripts/vagrant/volume.template.xml > ./${var.output_directory}-${source.type}/volume.xml'",
-        "sudo virsh vol-create default ./${var.output_directory}-${source.type}/volume.xml",
-        "bash -c '. ./scripts/vagrant/.variables; sudo virsh vol-upload $name ~/.vagrant.d/boxes/${source.name}/0/${var.vagrant_provider}/box.img --pool default'"
-      ]
-      only = ["vagrant.application"]
-    }
+    # Commented out as no subsequent  layer exists yet 
+    #post-processor "shell-local" {
+    #  # Create a volume for the next layer to auto-resolve, preventing race conditions during parallel builds.
+    #  inline = [
+    #    "vagrant box add --name ${source.name} --provider ${var.vagrant_provider} ${var.output_directory}-${source.type}/${var.image_name}.box",
+    #    "echo export name=\"${source.name}_vagrant_box_image_0_$(stat -c %Y ~/.vagrant.d/boxes/${source.name}/0/${var.vagrant_provider}/box.img )_box.img\" > ./scripts/vagrant/.variables",
+    #    "echo export libvirt_uid=\"$(id -u libvirt-qemu)\" >> ./scripts/vagrant/.variables",
+    #    "echo export libvirt_gid=\"$(getent group libvirt-qemu | awk -F : '{print $3}')\" >> ./scripts/vagrant/.variables",
+    #    "echo export allocation=\"$(stat -c %s ~/.vagrant.d/boxes/${source.name}/0/${var.vagrant_provider}/box.img)\" >> ./scripts/vagrant/.variables",
+    #    "echo export capacity=\"$(cat ~/.vagrant.d/boxes/${source.name}/0/${var.vagrant_provider}/metadata.json | jq .virtual_size | awk '{print $1*1024*1024*1024}')\" >> ./scripts/vagrant/.variables",
+    #    "cat ./scripts/vagrant/.variables",
+    #    "bash -c '. ./scripts/vagrant/.variables; envsubst < ./scripts/vagrant/volume.template.xml > ./${var.output_directory}-${source.type}/volume.xml'",
+    #    "sudo virsh vol-create default ./${var.output_directory}-${source.type}/volume.xml",
+    #    "bash -c '. ./scripts/vagrant/.variables; sudo virsh vol-upload $name ~/.vagrant.d/boxes/${source.name}/0/${var.vagrant_provider}/box.img --pool default'"
+    #  ]
+    #  only = ["vagrant.application"]
+    #}
 
     post-processor "shell-local" {
       inline = [
@@ -442,6 +443,7 @@ build {
         "mv ${var.output_directory}/${source.name}/squashfs/*.kernel ${var.output_directory}/${source.name}/",
         "mv ${var.output_directory}/${source.name}/squashfs/initrd.img.xz ${var.output_directory}/${source.name}/",
         "rm -rf ${var.output_directory}/${source.name}/squashfs",
+        "ls -lR ./${var.output_directory}/${source.name}",
       ]
       only = ["qemu.application", "virtualbox-ovf.application"]
     }
