@@ -299,12 +299,12 @@ pipeline {
                                     script {
                                         def arguments = "-except=virtualbox-ovf.* -only='*.application' -var 'source_box_uri=${env.NODE_IMAGE_BUILD}/${env.ARTIFACTS_DIRECTORY_BASE}-vagrant/${sourceArtifact}.box' -var 'google_source_image_name=${googleSourceImageName}' -var 'google_source_image_url=${googleSourceArtifact}' -var 'build_url=${env.BUILD_URL}' -var 'source_iso_uri=${env.NODE_IMAGE_BUILD}/${env.ARTIFACTS_DIRECTORY_BASE}-qemu/${sourceArtifact}.qcow2' -var 'cpus=${NPROC}' -var 'memory=${NRAM}' -var 'artifact_version=${VERSION}'"
                                         publishCsmImages.build(arguments, 'boxes/application/')
-                                        publishCsmImages.prepareArtifacts("${ARTIFACTS_DIRECTORY_COMMON}-qemu", VERSION)
-                                        publishCsmImages.prepareArtifacts("${ARTIFACTS_DIRECTORY_COMMON}-vagrant", VERSION)
+                                        publishCsmImages.prepareArtifacts("${ARTIFACTS_DIRECTORY_APPLICATION}-qemu", VERSION)
+                                        publishCsmImages.prepareArtifacts("${ARTIFACTS_DIRECTORY_APPLICATION}-vagrant", VERSION)
                                         def props = "build.number=${env.VERSION};build.url=${env.BUILD_URL};vcs.revision-short=${GIT_COMMIT[0..6]};build.source-artifact=${sourceArtifact}"
-                                        publishCsmImages(pattern: "${ARTIFACTS_DIRECTORY_COMMON}-qemu", imageName: 'application', version: env.VERSION, props: props)
-                                        props = "${props};box_name=ncn-common;box_provider=${vagrantProvider};box_version=${VERSION}"
-                                        publishCsmImages(pattern: "${ARTIFACTS_DIRECTORY_COMMON}-vagrant", imageName: 'application', version: env.VERSION, props: props)
+                                        publishCsmImages(pattern: "${ARTIFACTS_DIRECTORY_APPLICATION}-qemu", imageName: 'application', version: env.VERSION, props: props)
+                                        props = "${props};box_name=application;box_provider=${vagrantProvider};box_version=${VERSION}"
+                                        publishCsmImages(pattern: "${ARTIFACTS_DIRECTORY_APPLICATION}-vagrant", imageName: 'application', version: env.VERSION, props: props)
                                     }
                                 }
                             }
