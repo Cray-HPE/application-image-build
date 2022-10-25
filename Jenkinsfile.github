@@ -302,9 +302,9 @@ pipeline {
                                         publishCsmImages.prepareArtifacts("${ARTIFACTS_DIRECTORY_APPLICATION}-qemu", VERSION)
                                         publishCsmImages.prepareArtifacts("${ARTIFACTS_DIRECTORY_APPLICATION}-vagrant", VERSION)
                                         def props = "build.number=${env.VERSION};build.url=${env.BUILD_URL};vcs.revision-short=${GIT_COMMIT[0..6]};build.source-artifact=${sourceArtifact}"
-                                        publishCsmImages(pattern: "${ARTIFACTS_DIRECTORY_APPLICATION}-qemu", imageName: 'application', version: env.VERSION, props: props)
+                                        publishCsmImages(artifactoryRepo: "${env.IMAGE_REPO}", pattern: "${ARTIFACTS_DIRECTORY_APPLICATION}-qemu", imageName: 'application', version: env.VERSION, props: props)
                                         props = "${props};box_name=application;box_provider=${vagrantProvider};box_version=${VERSION}"
-                                        publishCsmImages(pattern: "${ARTIFACTS_DIRECTORY_APPLICATION}-vagrant", imageName: 'application', version: env.VERSION, props: props)
+                                        publishCsmImages(artifactoryRepo: "${env.IMAGE_REPO}", pattern: "${ARTIFACTS_DIRECTORY_APPLICATION}-vagrant", imageName: 'application', version: env.VERSION, props: props)
                                     }
                                 }
                             }
