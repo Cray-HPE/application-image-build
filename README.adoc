@@ -1,0 +1,89 @@
+= UAN Application Image Build Framework
+:toc:
+:toclevels: 3
+
+== Required Reading
+
+This README.adoc focuses on the differences between `node-images` and `application-image-build`. The README.adoc from `node-images`
+contains useful information that should be read first to understand how `node-images` peforms builds, the necessary software, and 
+what image types are available.
+
+A copy of xref:vendor/github.com/Cray-HPE/node-images/README.adoc[README.adoc] is contained in the git subtree of this repository.
+
+== Getting Started
+
+This repository contains the https://www.packer.io/[Packer] pipepline code for building CRAY User Access Node Application Images.
+
+The listed software below will equip a local machine or buildserver to build for any medium (`.squashfs` and `.qcow2`).
+
+This repository builds on the pattern established by https://github.com/Cray-HPE/node-images/[node-images]. Notably, a git subtree
+of node-images is maintained to target the latest stable version of that repository. To build application image, first the sles15-base
+image from node-images is built. The sles15-base is then used as the input to the application image. The application image uses
+assests from both `node-images/boxes/ncn-common` and `node-images/boxes/ncn-node-images` to create an image suitable to boot on
+Application/UAN nodes.
+
+This repo is based on `node-images` and should look familiar to anyone who has made changes to `node-images`. The intent is that
+`application-image-build` contains a git subtree of `node-images`, such that `application-image-build` is able to take advantage
+of changes made to `node-images`. Currently, only a base image and an application image are built, unlike `node-images` which
+builds a variety of Non-compute-node images (pit, kubernetes, ceph, etc). `application-image-build` will change directory into
+`vendor/.../node-images` to build the base image that is used as the starting point for the application layer. The application
+layer is based on a copy of the `node-images` layer `ncn-common`.
+
+`./boxes` contains the packer build files for the application image:
+boxes/
+└── application
+    ├── application.pkr.hcl
+    ├── files
+    ├── provisioners
+    └── variables.pkr.hcl
+
+`./vendor/.../node-images/boxes` contains the packer build files for the base image (and unused files for pit, k8s, and ceph images):
+vendor/github.com/Cray-HPE/node-images/boxes/
+├── ncn-common
+│   ├── ncn-common.pkr.hcl
+│   ├── provisioners
+│   └── variables.pkr.hcl
+├── ncn-node-images
+│   ├── kubernetes
+│   ├── kubernetes.pkr.hcl
+│   ├── pre-install-toolkit
+│   ├── pre-install-toolkit.pkr.hcl
+│   ├── provisioners
+│   ├── storage-ceph
+│   ├── storage-ceph.pkr.hcl
+│   └── variables.pkr.hcl
+└── sles15-base
+    ├── http
+    ├── provisioners
+    ├── sles15-base.pkr.hcl
+    └── variables.pkr.hcl
+
+=== Contributing
+
+The general strategy of updating `application-image-build` with the latest changes from `node-images` is as follows:
+
+Checkout a new branch
+`git branch update-git-subtree main`
+
+Update the git subtree `node-images` and select the appropriate target branch (main, lts/..., etc)
+If the target branch is changing from one lts to the next, or lts to main (or vice versa) be prepared for the possibility of substantial change.
+`git vendor update node-images lts/1.4`
+
+Review change history
+`git log`
+
+Compare changes between application.pkr.hcl and common.pkr.hcl. The following differences should be expected:
+* ignore replacement of "application" with "common"
+* ignore addition of vendor_directory to various paths
+* allow for changes in addition to what is already in common.pkr.hcl
+* accept formatting differences from common.pkr.hcl to make diffs easier in the future
+`diff boxes/application/application.pkr.hcl vendor/github.com/Cray-HPE/node-images/boxes/ncn-common/ncn-common.pkr.hcl`
+
+Once the changes from the diff have been made, commit them and move on to `Jenkinsfile.github`. Similar rules from above should apply:
+* ignore replacement of "application" with "common"
+* ignore addition of vendor_directory to various paths
+* ignore sections for images that aren't built (pit, ceph, k8s, storage)
+* publish steps should go to user-uan-images and not csm-images
+`diff Jenkinsfile.github vendor/github.com/Cray-HPE/node-images/Jenkinsfile.github`
+
+After committing changes, verify the build succeeds and generate a PR. It may take multiple iterations to achieve a successful build.

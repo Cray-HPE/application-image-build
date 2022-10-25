@@ -377,7 +377,6 @@ build {
     script          = "${path.root}/provisioners/common/cleanup.sh"
   }
 
-  # TODO Replace with non-copied version
   provisioner "shell" {
     execute_command = "sudo bash -c '{{ .Vars }} {{ .Path }}'"
     script = "${path.root}/files/cleanup.sh"
