@@ -30,14 +30,17 @@ builds a variety of Non-compute-node images (pit, kubernetes, ceph, etc). `appli
 layer is based on a copy of the `node-images` layer `ncn-common`.
 
 `./boxes` contains the packer build files for the application image:
+----
 boxes/
 └── application
     ├── application.pkr.hcl
     ├── files
     ├── provisioners
     └── variables.pkr.hcl
+----
 
 `./vendor/.../node-images/boxes` contains the packer build files for the base image (and unused files for pit, k8s, and ceph images):
+----
 vendor/github.com/Cray-HPE/node-images/boxes/
 ├── ncn-common
 │   ├── ncn-common.pkr.hcl
@@ -57,33 +60,50 @@ vendor/github.com/Cray-HPE/node-images/boxes/
     ├── provisioners
     ├── sles15-base.pkr.hcl
     └── variables.pkr.hcl
+----
 
 === Contributing
 
 The general strategy of updating `application-image-build` with the latest changes from `node-images` is as follows:
 
-Checkout a new branch
-`git branch update-git-subtree main`
+Checkout a new branch:
+[,bash]
+----
+git branch update-git-subtree main
+----
 
 Update the git subtree `node-images` and select the appropriate target branch (main, lts/..., etc)
-If the target branch is changing from one lts to the next, or lts to main (or vice versa) be prepared for the possibility of substantial change.
-`git vendor update node-images lts/1.4`
+If the target branch is changing from one lts to the next, or lts to main (or vice versa) be prepared for the possibility 
+of substantial changes:
+[,bash]
+----
+git vendor update node-images lts/1.4
+----
 
-Review change history
-`git log`
+Review change history:
+[,bash]
+----
+git log
+----
 
 Compare changes between application.pkr.hcl and common.pkr.hcl. The following differences should be expected:
 * ignore replacement of "application" with "common"
 * ignore addition of vendor_directory to various paths
 * allow for changes in addition to what is already in common.pkr.hcl
 * accept formatting differences from common.pkr.hcl to make diffs easier in the future
-`diff boxes/application/application.pkr.hcl vendor/github.com/Cray-HPE/node-images/boxes/ncn-common/ncn-common.pkr.hcl`
+[,bash]
+----
+diff boxes/application/application.pkr.hcl vendor/github.com/Cray-HPE/node-images/boxes/ncn-common/ncn-common.pkr.hcl
+----
 
 Once the changes from the diff have been made, commit them and move on to `Jenkinsfile.github`. Similar rules from above should apply:
 * ignore replacement of "application" with "common"
 * ignore addition of vendor_directory to various paths
 * ignore sections for images that aren't built (pit, ceph, k8s, storage)
 * publish steps should go to user-uan-images and not csm-images
-`diff Jenkinsfile.github vendor/github.com/Cray-HPE/node-images/Jenkinsfile.github`
+[,bash]
+----
+diff Jenkinsfile.github vendor/github.com/Cray-HPE/node-images/Jenkinsfile.github
+----
 
 After committing changes, verify the build succeeds and generate a PR. It may take multiple iterations to achieve a successful build.
