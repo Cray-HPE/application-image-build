@@ -22,10 +22,19 @@
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 #
-
 set -e
 
 . /srv/cray/resources/common/vars.sh
+
+echo "configuring podman cni secondary location"
+cat > /etc/containers/containers.conf  <<'EOF'
+[network]
+cni_plugin_dirs = [
+  "/usr/lib/cni",
+  "/opt/cni/bin",
+]
+
+EOF
 
 echo "export KUBECONFIG=\"/etc/kubernetes/admin.conf\"" >> /etc/profile.d/cray.sh
 mkdir -p /etc/kubernetes
@@ -103,7 +112,7 @@ modprobe overlay
 modprobe br_netfilter
 
 echo "Installing kubernetes python client"
-python3 -m pip install --ignore-installed PyYAML
+python3 -m pip install --ignore-installed 'PyYAML<6.0'
 #
 # CSM 1.2 shipped with 23.6.0, so we need equal to
 # or greater than that version
@@ -136,28 +145,36 @@ systemctl daemon-reload
 systemctl enable kubelet containerd
 systemctl start containerd
 
+# Sometimes the build may or may not have containerd.sock right away.
+socket_wait_counter=1
+socket_wait_max=20
+while [ ! -S /run/containerd/containerd.sock ]; do
+  if [[ ${socket_wait_counter} -ge ${socket_wait_max} ]]; then
+      echo >&2 "Waited ${socket_wait_max} times and containerd is not ready."
+      exit 1
+  fi
+  echo "/run/containerd/containerd.sock is not yet present, waiting ... [attempt ${socket_wait_counter} of ${socket_wait_max}]"
+  sleep 2
+  socket_wait_counter=$((socket_wait_counter + 1))
+done
+
 . /srv/cray/resources/common/vars.sh
 
 echo "Pre-pulling images for previous version ceph provisioners (to support hybrid mode in upgrade)"
-crictl pull k8s.gcr.io/sig-storage/csi-node-driver-registrar:v1.3.0
-crictl pull k8s.gcr.io/sig-storage/csi-provisioner:v1.6.0
-crictl pull k8s.gcr.io/sig-storage/csi-resizer:v0.5.0
-crictl pull k8s.gcr.io/sig-storage/csi-snapshotter:v2.1.0
-crictl pull quay.io/cephcsi/cephcsi:v3.1.1
-crictl pull quay.io/k8scsi/csi-attacher:v2.1.1
-crictl pull quay.io/k8scsi/csi-node-driver-registrar:v1.3.0
-crictl pull quay.io/k8scsi/csi-provisioner:v1.6.0
-crictl pull quay.io/k8scsi/csi-resizer:v0.5.0
-crictl pull quay.io/k8scsi/csi-snapshotter:v2.1.0
-crictl pull quay.io/k8scsi/csi-snapshotter:v2.1.1
-
-echo "Pre-pulling images for current version ceph provisioners"
-crictl pull ${K8S_IMAGE_REGISTRY}/sig-storage/csi-provisioner:v3.1.0
 crictl pull ${K8S_IMAGE_REGISTRY}/sig-storage/csi-attacher:v3.4.0
+crictl pull ${K8S_IMAGE_REGISTRY}/sig-storage/csi-provisioner:v3.1.0
 crictl pull ${K8S_IMAGE_REGISTRY}/sig-storage/csi-snapshotter:v4.2.0
 crictl pull ${K8S_IMAGE_REGISTRY}/sig-storage/csi-node-driver-registrar:v2.4.0
 crictl pull ${K8S_IMAGE_REGISTRY}/sig-storage/csi-resizer:v1.3.0
 crictl pull ${QUAY_IMAGE_REGISTRY}/cephcsi/cephcsi:v3.5.1
+
+echo "Pre-pulling images for current version ceph provisioners"
+crictl pull ${K8S_IMAGE_REGISTRY}/sig-storage/csi-attacher:v3.4.0
+crictl pull ${K8S_IMAGE_REGISTRY}/sig-storage/csi-provisioner:v3.1.0
+crictl pull ${K8S_IMAGE_REGISTRY}/sig-storage/csi-snapshotter:v4.2.0
+crictl pull ${K8S_IMAGE_REGISTRY}/sig-storage/csi-node-driver-registrar:v2.4.0
+crictl pull ${K8S_IMAGE_REGISTRY}/sig-storage/csi-resizer:v1.4.0
+crictl pull ${QUAY_IMAGE_REGISTRY}/cephcsi/cephcsi:v3.6.2
 
 echo "Pre-pulling images for previous version of K8S (to support hybrid mode in upgrade)"
 #
@@ -177,7 +194,7 @@ crictl pull ${DOCKER_IMAGE_REGISTRY}/nfvpe/multus:${MULTUS_PREVIOUS_VERSION}
 echo "Pre-pulling images for current version of K8S from artifactory"
 crictl pull ${DOCKER_IMAGE_REGISTRY}/weaveworks/weave-kube:${WEAVE_VERSION}
 crictl pull ${DOCKER_IMAGE_REGISTRY}/weaveworks/weave-npc:${WEAVE_VERSION}
-crictl pull ${DOCKER_IMAGE_REGISTRY}/nfvpe/multus:${MULTUS_VERSION}
+crictl pull ${GHCR_IMAGE_REGISTRY}/k8snetworkplumbingwg/multus-cni:${MULTUS_VERSION}
 crictl pull ${K8S_IMAGE_REGISTRY}/coredns:${COREDNS_VERSION}
 crictl pull ${K8S_IMAGE_REGISTRY}/kube-apiserver:"v${KUBERNETES_PULL_VERSION}"
 crictl pull ${K8S_IMAGE_REGISTRY}/kube-controller-manager:"v${KUBERNETES_PULL_VERSION}"
@@ -193,3 +210,4 @@ echo "Writing docker registry sources to disk for use during cloud-init"
 echo "export K8S_IMAGE_REGISTRY=${K8S_IMAGE_REGISTRY}" >> /srv/cray/resources/common/vars.sh
 echo "export DOCKER_IMAGE_REGISTRY=${DOCKER_IMAGE_REGISTRY}" >> /srv/cray/resources/common/vars.sh
 echo "export QUAY_IMAGE_REGISTRY=${QUAY_IMAGE_REGISTRY}" >> /srv/cray/resources/common/vars.sh
+echo "export GHCR_IMAGE_REGISTRY=${GHCR_IMAGE_REGISTRY}" >> /srv/cray/resources/common/vars.sh

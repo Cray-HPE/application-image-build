@@ -66,8 +66,8 @@ conf="${prefix}/conf"
 socket="${prefix}/agent.sock"
 datadir="${prefix}/data"
 svidkey="${datadir}/svid.key"
-bundleder="${datadir}/bundle.der"
-agentsvidder="${datadir}/agent_svid.der"
+bundleder="${prefix}/bundle.der"
+agentsvidder="${prefix}/agent_svid.der"
 jointoken="${conf}/join_token"
 spireagent="${conf}/spire-agent.conf"
 spirebundle="${conf}/bundle.crt"
@@ -78,7 +78,7 @@ for node in $nodes; do
 	else
 		if sshnh "$node" ls "${svidkey}" > /dev/null 2>&1; then
 			echo "$node was once joined to spire. Cleaning up old files"
-			sshnh "$node" rm "${svidkey}" "${bundleder}" "${agentsvidder}"
+			sshnh "$node" rm "${svidkey}" "${bundleder}" "${agentsvidder}" || true
 		fi
 		echo "$node is being joined to spire."
 		XNAME="$(sshnh "$node" cat /proc/cmdline | sed 's/.*xname=\([A-Za-z0-9]*\).*/\1/')"

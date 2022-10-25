@@ -22,6 +22,12 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 #
 service:
+  kubelet:
+    enabled: true
+    running: false
   nginx:
     enabled: false
+    running: false
+  spire-agent:
+    enabled: true
     running: false

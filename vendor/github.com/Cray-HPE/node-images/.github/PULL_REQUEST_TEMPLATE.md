@@ -27,6 +27,7 @@
 - [ ] I have included documentation in my PR (or it is not required)
 - [ ] I tested this on internal system (if yes, please include results or a description of the test)
 - [ ] I tested this on a vshasta system (if yes, please include results or a description of the test)
+- [ ] I tested this on a vagrant environment (if yes, please include results or a description of the test)
  
 ### Idempotency
  

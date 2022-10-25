@@ -6,6 +6,7 @@ After=network.target
 [Service]
 ExecStartPre=/sbin/modprobe overlay && /sbin/modprobe br_netfilter
 ExecStart=/usr/local/bin/containerd
+ExecStopPost=/usr/bin/find /run/containerd/io.containerd.runtime.v2.task -name address -type f -delete
 Restart=always
 RestartSec=5
 Delegate=yes

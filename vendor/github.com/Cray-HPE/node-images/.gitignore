@@ -1,12 +1,14 @@
 # ignore template files
 hpe.repos
 suse.repos
-output-ncn-common
-output-ncn-node-images
-output-pit-common
-output-sles15-base
+output-*/
 scripts/google/.variables
-iso
-autoinst.xml
-autoinst-google.xml
+box/
+iso/
+autoinst*.xml
 ansible
+default-pool.xml
+volume.xml
+environment
+Vagrantfile
+.vagrant/

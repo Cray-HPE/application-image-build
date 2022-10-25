@@ -64,9 +64,6 @@ service:
   issue-generator:
     enabled: true
     running: false
-  kubelet:
-    enabled: true
-    running: false
   purge-kernels:
     enabled: true
     running: false
@@ -79,9 +76,6 @@ service:
   sshd:
     enabled: true
     running: true
-  spire-agent:
-    enabled: true
-    running: false
   sshd:
     enabled: true
     running: true
@@ -103,16 +97,12 @@ service:
 process:
   sshd:
     running: true
-  dnsmasq:
-    running: false
   cron:
     running: true
 package:
   curl:
     installed: true
   craycli:
-    installed: true
-  dnsmasq:
     installed: true
   ethtool:
     installed: true
@@ -157,10 +147,6 @@ package:
   cray-power-button:
     installed: true
   cray-prodmgr:
-    installed: true
-  cray-orca:
-    installed: true
-  cray-cps-utils:
     installed: true
   intlfonts-euro-bitmap-fonts:
     installed: true
