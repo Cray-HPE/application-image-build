@@ -30,6 +30,7 @@ builds a variety of Non-compute-node images (pit, kubernetes, ceph, etc). `appli
 layer is based on a copy of the `node-images` layer `ncn-common`.
 
 `./boxes` contains the packer build files for the application image:
+[,bash]
 ----
 boxes/
 └── application
@@ -40,6 +41,7 @@ boxes/
 ----
 
 `./vendor/.../node-images/boxes` contains the packer build files for the base image (and unused files for pit, k8s, and ceph images):
+[,bash]
 ----
 vendor/github.com/Cray-HPE/node-images/boxes/
 ├── ncn-common

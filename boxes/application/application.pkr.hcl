@@ -393,8 +393,8 @@ build {
   provisioner "file" {
     direction   = "download"
     source      = "/squashfs/"
-    destination = "${var.output_directory}/${source.name}/"
-    only = ["qemu.application", "virtualbox-ovf.application"]
+    destination = "${var.output_directory}/${source.name}-${source.type}/"
+    only        = ["qemu.application"]
   }
 
   provisioner "shell" {
@@ -437,14 +437,13 @@ build {
     post-processor "shell-local" {
       inline = [
         "echo 'Rename filesystem.squashfs and move remaining files to receive the image ID'",
-        "ls -lR ./${var.output_directory}/${source.name}",
-        "mv ${var.output_directory}/${source.name}/squashfs/filesystem.squashfs ${var.output_directory}/${source.name}/${source.name}.squashfs",
-        "mv ${var.output_directory}/${source.name}/squashfs/*.kernel ${var.output_directory}/${source.name}/",
-        "mv ${var.output_directory}/${source.name}/squashfs/initrd.img.xz ${var.output_directory}/${source.name}/",
-        "rm -rf ${var.output_directory}/${source.name}/squashfs",
-        "ls -lR ./${var.output_directory}/${source.name}",
+        "ls -lR ./${var.output_directory}/${source.name}-${source.type}",
+        "mv ${var.output_directory}/${source.name}-${source.type}/squashfs/filesystem.squashfs ${var.output_directory}/${source.name}-${source.type}/${source.name}.squashfs",
+        "mv ${var.output_directory}/${source.name}-${source.type}/squashfs/*.kernel ${var.output_directory}/${source.name}-${source.type}",
+        "mv ${var.output_directory}/${source.name}-${source.type}/squashfs/initrd.img.xz ${var.output_directory}/${source.name}-${source.type}",
+        "rm -rf ${var.output_directory}/${source.name}-${source.type}/squashfs",
       ]
-      only = ["qemu.application", "virtualbox-ovf.application"]
+      only = ["qemu.application"]
     }
   }
 }
