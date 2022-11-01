@@ -65,7 +65,7 @@ source "qemu" "application" {
   ssh_password        = "${var.ssh_password}"
   ssh_username        = "${var.ssh_username}"
   ssh_wait_timeout    = "${var.ssh_wait_timeout}"
-  output_directory    = "${var.output_directory}-qemu"
+  output_directory    = "${var.output_directory}/application-qemu"
   vnc_bind_address    = "${var.vnc_bind_address}"
   vm_name             = "${var.image_name}.${var.qemu_format}"
   format              = "${var.qemu_format}"
@@ -77,7 +77,7 @@ source "vagrant" "application" {
   box_name     = "${var.box_name}"
   communicator = "ssh"
   insert_key   = true
-  output_dir   = "${var.output_directory}-vagrant"
+  output_dir   = "${var.output_directory}/application-vagrant"
   provider     = "${var.vagrant_provider}"
   skip_add     = true
   source_path  = "${var.source_box_uri}"
@@ -95,7 +95,7 @@ source "virtualbox-ovf" "application" {
   ssh_password     = "${var.ssh_password}"
   ssh_username     = "${var.ssh_username}"
   ssh_wait_timeout = "${var.ssh_wait_timeout}"
-  output_directory = "${var.output_directory}-virtualbox-ovf"
+  output_directory = "${var.output_directory}/application-virtualbox-ovf"
   output_filename  = "${var.image_name}"
   vboxmanage       = [
     [
@@ -320,7 +320,7 @@ build {
       "/tmp/installed.packages",
       "/tmp/installed.repos"
     ]
-    destination = "${var.output_directory}-qemu/"
+    destination = "${var.output_directory}/${source.name}-qemu/"
     only        = ["qemu.application", "virtualbox-ovf.application"]
   }
 
@@ -347,28 +347,28 @@ build {
   provisioner "file" {
     direction   = "download"
     source      = "/tmp/oval-results.xml"
-    destination = "${var.output_directory}-${source.type}/oval-results-${source.type}.${source.name}.xml"
+    destination = "${var.output_directory}/${source.type}-${source.type}/oval-results-${source.type}.${source.name}.xml"
     only = ["qemu.application", "virtualbox-ovf.application"]
   }
 
   provisioner "file" {
     direction   = "download"
     source      = "/tmp/oval-patch-results.xml"
-    destination = "${var.output_directory}-${source.type}/oval-patch-results-${source.type}.${source.name}.xml"
+    destination = "${var.output_directory}/${source.type}-${source.type}/oval-patch-results-${source.type}.${source.name}.xml"
     only = ["qemu.application", "virtualbox-ovf.application"]
   }
 
   provisioner "file" {
     direction   = "download"
     source      = "/tmp/oval-report.html"
-    destination = "${var.output_directory}-${source.type}/oval-report-${source.type}.${source.name}.html"
+    destination = "${var.output_directory}/${source.type}-${source.type}/oval-report-${source.type}.${source.name}.html"
     only = ["qemu.application", "virtualbox-ovf.application"]
   }
 
   provisioner "file" {
     direction   = "download"
     source      = "/tmp/oval-patch-report.html"
-    destination = "${var.output_directory}-${source.type}/oval-patch-report-${source.type}.${source.name}.html"
+    destination = "${var.output_directory}/${source.type}-${source.type}/oval-patch-report-${source.type}.${source.name}.html"
     only = ["qemu.application", "virtualbox-ovf.application"]
   }
 
@@ -393,8 +393,8 @@ build {
   provisioner "file" {
     direction   = "download"
     source      = "/squashfs/"
-    destination = "${var.output_directory}/${source.name}/"
-    only = ["qemu.application", "virtualbox-ovf.application"]
+    destination = "${var.output_directory}/${source.name}-${source.type}/"
+    only        = ["qemu.application"]
   }
 
   provisioner "shell" {
@@ -406,15 +406,15 @@ build {
   }
 
   post-processors {
-    post-processor "shell-local" {
-      # Packer will always make a package.box file from its vagrant builder (https://github.com/hashicorp/packer-plugin-vagrant/issues/16).
-      # This renames package.box to ${source.name}.box, and removes the Vagrantfile since it contains sensitive information (e.g. the root password).
-      inline = [
-        "mv -v ${var.output_directory}-${source.type}/package.box ${var.output_directory}-${source.type}/${var.image_name}.box",
-        "ls -l ${var.output_directory}-${source.type}/"
-      ]
-      only = ["vagrant.application"]
-    }
+    #post-processor "shell-local" {
+    #  # Packer will always make a package.box file from its vagrant builder (https://github.com/hashicorp/packer-plugin-vagrant/issues/16).
+    #  # This renames package.box to ${source.name}.box, and removes the Vagrantfile since it contains sensitive information (e.g. the root password).
+    #  inline = [
+    #    "mv -v ${var.output_directory}/${source.type}-${source.type}/package.box ${var.output_directory}/${source.type}-${source.type}/${var.image_name}.box",
+    #    "ls -l ${var.output_directory}/${source.type}-${source.type}/"
+    #  ]
+    #  only = ["vagrant.application"]
+    #}
 
     # Commented out as no subsequent  layer exists yet 
     #post-processor "shell-local" {
@@ -437,14 +437,14 @@ build {
     post-processor "shell-local" {
       inline = [
         "echo 'Rename filesystem.squashfs and move remaining files to receive the image ID'",
-        "ls -lR ./${var.output_directory}/${source.name}",
-        "mv ${var.output_directory}/${source.name}/squashfs/filesystem.squashfs ${var.output_directory}/${source.name}/${source.name}.squashfs",
-        "mv ${var.output_directory}/${source.name}/squashfs/*.kernel ${var.output_directory}/${source.name}/",
-        "mv ${var.output_directory}/${source.name}/squashfs/initrd.img.xz ${var.output_directory}/${source.name}/",
-        "rm -rf ${var.output_directory}/${source.name}/squashfs",
-        "ls -lR ./${var.output_directory}/${source.name}",
+        "ls -lR ./${var.output_directory}/${source.name}-${source.type}",
+        "mv ${var.output_directory}/${source.name}-${source.type}/squashfs/filesystem.squashfs ${var.output_directory}/${source.name}-${source.type}/${source.name}.squashfs",
+        "mv ${var.output_directory}/${source.name}-${source.type}/squashfs/*.kernel ${var.output_directory}/${source.name}-${source.type}",
+        "mv ${var.output_directory}/${source.name}-${source.type}/squashfs/initrd.img.xz ${var.output_directory}/${source.name}-${source.type}",
+        "rm -rf ${var.output_directory}/${source.name}-${source.type}/squashfs",
+        "ls -lR ./${var.output_directory}/${source.name}-${source.type}"
       ]
-      only = ["qemu.application", "virtualbox-ovf.application"]
+      only = ["qemu.application"]
     }
   }
 }

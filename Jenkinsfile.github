@@ -81,7 +81,7 @@ pipeline {
 
     environment {
         ARTIFACTS_DIRECTORY_BASE = "output-sles15-base"
-        ARTIFACTS_DIRECTORY_APPLICATION = "output-application"
+        ARTIFACTS_DIRECTORY_APPLICATION = "output-application/application"
         BASE_BOX = "${baseBox}"
         BASE_ISO = "${baseISO}"
         BOX = "${baseBox}-Vagrant.x86_64-libvirt.box"
