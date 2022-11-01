@@ -320,7 +320,7 @@ build {
       "/tmp/installed.packages",
       "/tmp/installed.repos"
     ]
-    destination = "${var.output_directory}/${source.name}-qemu"
+    destination = "${var.output_directory}/${source.name}-qemu/"
     only        = ["qemu.application", "virtualbox-ovf.application"]
   }
 
