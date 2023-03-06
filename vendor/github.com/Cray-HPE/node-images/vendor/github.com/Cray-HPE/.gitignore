@@ -1,0 +1,4 @@
+vendor/github.com/Cray-HPE/node-images/vendor/github.com/Cray-HPE/.gitignore# ignore template files
+google.repos
+hpe.repos
+suse.repos

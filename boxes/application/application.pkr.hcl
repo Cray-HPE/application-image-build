@@ -187,7 +187,7 @@ build {
   provisioner "shell" {
     execute_command = "sudo bash -c '{{ .Vars }} {{ .Path }}'"
     inline          = [
-      "bash -c '. /srv/cray/csm-rpms/scripts/rpm-functions.sh; install-packages /srv/cray/csm-rpms/packages/node-image-common/base.packages'"
+      "bash -c '. /srv/cray/csm-rpms/scripts/rpm-functions.sh; install-packages /srv/cray/csm-rpms/packages/node-image-non-compute-common/base.packages'"
     ]
     valid_exit_codes = [0, 123]
   }
@@ -195,7 +195,7 @@ build {
   provisioner "shell" {
     execute_command = "sudo bash -c '{{ .Vars }} {{ .Path }}'"
     inline          = [
-      "bash -c '. /srv/cray/csm-rpms/scripts/rpm-functions.sh; install-packages /srv/cray/csm-rpms/packages/node-image-common/google.packages'"
+      "bash -c '. /srv/cray/csm-rpms/scripts/rpm-functions.sh; install-packages /srv/cray/csm-rpms/packages/node-image-non-compute-common/google.packages'"
     ]
     valid_exit_codes = [0, 123]
     only             = ["googlecompute.application"]
@@ -204,7 +204,7 @@ build {
   provisioner "shell" {
     execute_command = "sudo bash -c '{{ .Vars }} {{ .Path }}'"
     inline          = [
-      "bash -c '. /srv/cray/csm-rpms/scripts/rpm-functions.sh; install-packages /srv/cray/csm-rpms/packages/node-image-common/metal.packages'"
+      "bash -c '. /srv/cray/csm-rpms/scripts/rpm-functions.sh; install-packages /srv/cray/csm-rpms/packages/node-image-non-compute-common/metal.packages'"
     ]
     valid_exit_codes = [0, 123]
     only             = ["qemu.application", "virtualbox-ovf.application"]
@@ -213,7 +213,7 @@ build {
   provisioner "shell" {
     execute_command = "sudo bash -c '{{ .Vars }} {{ .Path }}'"
     inline          = [
-      "bash -c '. /srv/cray/csm-rpms/scripts/rpm-functions.sh; install-packages /srv/cray/csm-rpms/packages/node-image-common/vagrant.packages'"
+      "bash -c '. /srv/cray/csm-rpms/scripts/rpm-functions.sh; install-packages /srv/cray/csm-rpms/packages/node-image-non-compute-common/vagrant.packages'"
     ]
     valid_exit_codes = [0, 123]
     only             = ["vagrant.application"]
