@@ -152,14 +152,26 @@ build {
   }
   
   provisioner "shell" {
-    execute_command = "sudo bash -c '{{ .Vars }} {{ .Path }}'"
     environment_vars = [
-      "COS_CN_REPO=https://arti.hpc.amslabs.hpecorp.net/artifactory/cos-rpm-stable-local/release/cos-2.4/sle15_sp3_cn/ cray-cos-sle-15sp3-SHASTA-OS-cos-cn --no-gpgcheck -p 89 cray/cos/sle-15sp3-cn",
+      "COS_CN_REPO=https://arti.hpc.amslabs.hpecorp.net/artifactory/cos-rpm-stable-local/release/cos-2.4/sle15_sp3_cn/ cray-cos-sle-15sp3-SHASTA-OS-cos-cn --no-gpgcheck -p 89 cray/cos/sle-15sp3-cn"
     ]
     inline        = [
-      "bash -c 'echo $COS_CN_REPO >> /srv/cray/csm-rpms/repos/cray.repos'",
+      "bash -c 'echo $COS_CN_REPO >> /srv/cray/csm-rpms/repos/cray.template.repos'"
+    ]
+  }
+
+  provisioner "shell" {
+    execute_command = "sudo bash -c '{{ .Vars }} {{ .Path }}'"
+    inline        = [
       "bash -c 'cp /srv/cray/files/cmdline-perm.service /usr/lib/systemd/system/cmdline-perm.service'",
       "bash -c 'systemctl enable cmdline-perm'"
+    ]
+  }
+
+  provisioner "shell" {
+    execute_command = "sudo bash -c '{{ .Vars }} {{ .Path }}'"
+    inline        = [
+      "bash -c 'cat  /srv/cray/csm-rpms/repos/cray.template.repos'"
     ]
   }
 
@@ -225,7 +237,6 @@ build {
       "bash -c '. /srv/cray/csm-rpms/scripts/rpm-functions.sh; install-packages /srv/cray/files/application.packages'"
     ]
     valid_exit_codes = [0, 123]
-    only             = ["qemu.application", "virtualbox-ovf.application"]
   }
 
   provisioner "shell" {
