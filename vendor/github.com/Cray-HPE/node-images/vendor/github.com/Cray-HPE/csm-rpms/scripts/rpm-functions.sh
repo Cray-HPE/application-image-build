@@ -47,7 +47,6 @@ EOF
 }
 
 function list-cray-repos-files() {
-  /usr/bin/envsubst < ${CSM_RPMS_DIR}/repos/cray.template.repos > ${CSM_RPMS_DIR}/repos/cray.repos
   cat <<EOF
 ${CSM_RPMS_DIR}/repos/cray.repos
 EOF
